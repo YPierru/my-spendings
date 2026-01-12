@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is "My Spendings" - a Flutter mobile app for personal finance tracking. It parses transaction data from a CSV file, persists to SQLite, and displays spending/income with filtering, search, and chart visualizations.
+This is "My Spendings" - a Flutter mobile app for personal finance tracking. It parses transaction data from a CSV file, persists to SQLite, and displays spending/income with filtering and search capabilities.
 
 ## Common Commands
 
@@ -32,17 +32,28 @@ flutter test test/widget_test.dart
 2. **Database Service** (`lib/services/database_service.dart`) - SQLite persistence layer (singleton pattern). On first run, imports CSV data; subsequent launches use cached database
 3. **Transaction Model** (`lib/models/transaction.dart`) - Data class with `parseDate()` for French month names and `parseAmount()` for comma decimal separator. Supports `toMap()`/`fromMap()` for database serialization
 4. **Dashboard** (`lib/main.dart`) - Main widget that loads transactions and provides category filtering
-5. **List View** (`lib/widgets/transaction_list_view.dart`) - Displays transactions with search, expense/income filter, grouping by category, and sorting options
+5. **List View** (`lib/widgets/transaction_list_view.dart`) - Displays transactions grouped by category within each month. Categories are sorted alphabetically. Tapping a category opens a bottom sheet with all transactions for that category
 
 ### Key Implementation Details
 - CSV uses semicolon delimiter with columns: date, category, label, debit, credit
 - French month abbreviations are normalized (accents removed) before parsing: janv→1, fevr→2, mars→3, avr→4, mai→5, juin→6, juil→7, aout→8, sept→9, oct→10, nov→11, dec→12
 - Transactions can be either expenses (debit > 0) or income (credit > 0)
 - CSV parsing stops at "NE RIEN ECRIRE" marker row
-- Uses `fl_chart` package for visualizations and `sqflite` for persistence
+- Uses `sqflite` package for persistence and `fl_chart` for visualizations
+
+### UI/UX Flow
+- Transactions are always displayed grouped by category (no toggle between detail and grouped views)
+- Categories within each month are sorted alphabetically
+- Tapping a category card opens a bottom sheet showing all transactions for that category in that month
+- Each transaction in the bottom sheet displays:
+  - Calendar icon with the day number
+  - Transaction label (or category name if no label exists)
+  - Amount (color-coded: red for expenses, green for income)
+  - Edit and delete action buttons
+- The floating action button (+) appears in the bottom sheet, allowing users to add new transactions to the selected category
 
 ### Widget Structure
 - `SpendingDashboard` (stateful) - Root widget managing data loading and global filters
-- `TransactionListView` (stateful) - Local filtering, search, grouping toggle, and sort controls
-- `TransactionForm` - Modal for adding/editing transactions with category autocomplete
-- Chart widgets in `lib/widgets/` - `CategoryPieChart`, `MonthlyBarChart`, `CategoryAnalysisChart`
+- `TransactionListView` (stateful) - Displays grouped transactions by month and category with search and expense/income filtering. Accepts `onEdit`, `onDelete`, and `onAdd` callbacks for transaction management
+- `TransactionForm` - Full-screen form for adding/editing transactions with category selection or creation
+- Chart widgets (`category_pie_chart.dart`, `monthly_bar_chart.dart`, `category_analysis_chart.dart`) - Visualizations using fl_chart
