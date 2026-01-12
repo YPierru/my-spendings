@@ -10,18 +10,12 @@ A Flutter mobile application for personal finance tracking and expense managemen
 - Persistent local storage using SQLite
 - Support for both expenses and income tracking
 
-### Data Visualization
-- Category-based pie charts showing expense distribution
-- Monthly bar charts for income vs. expenses comparison
-- Category analysis charts with detailed breakdowns
-- Interactive data exploration with drill-down capabilities
-
 ### Filtering and Search
 - Filter transactions by category
 - Search transactions by label or description
 - Toggle between expenses-only and income-only views
-- Sort transactions by date, amount, or category
-- Group transactions by category for easier analysis
+- View transactions grouped by category within each month
+- Categories are sorted alphabetically for easy navigation
 
 ### Data Import
 - Automatic CSV parsing on first launch
@@ -107,7 +101,6 @@ res/
 
 ### Key Dependencies
 - **sqflite** (^2.3.0) - Local SQLite database for data persistence
-- **fl_chart** (^0.69.0) - Interactive charts and data visualization
 - **path** (^1.8.3) - File path manipulation utilities
 
 ### Architecture Patterns
@@ -147,23 +140,38 @@ flutter build ios --release
 ### First Launch
 On first launch, the app automatically imports transactions from `res/data.csv` and stores them in a local SQLite database. Subsequent launches load data from the database for faster performance.
 
+### Viewing Transactions
+Transactions are displayed grouped by category within each month. Categories are sorted alphabetically for easy navigation. Each category card shows:
+- Category name
+- Total amount (expenses in red, income in green)
+- Number of transactions
+
+### Viewing Category Details
+1. Tap on any category card to open a detailed view in a bottom sheet
+2. The bottom sheet displays all transactions for that category in that month
+3. Each transaction shows:
+   - Calendar icon with the day number
+   - Transaction label (or category name if no label exists)
+   - Amount (color-coded: red for expenses, green for income)
+   - Edit and delete buttons for transaction management
+
 ### Adding Transactions
-1. Tap the floating action button (+) in the bottom-right corner
-2. Fill in the transaction details (date, category, label, amount)
-3. Select whether it's an expense (debit) or income (credit)
-4. Tap "Save" to add the transaction
+1. Tap on a category card to open the bottom sheet
+2. Tap the floating action button (+) inside the bottom sheet
+3. Fill in the transaction details (date, category, label, amount)
+4. Select whether it's an expense (debit) or income (credit)
+5. Tap "Save" to add the transaction
+
+### Editing and Deleting Transactions
+1. Open a category's bottom sheet by tapping the category card
+2. Find the transaction you want to modify
+3. Tap the edit button (pencil icon) to modify transaction details
+4. Tap the delete button (trash icon) to remove the transaction
 
 ### Filtering Data
 - Use the category dropdown at the top to filter by specific categories
 - Use the search bar in the transaction list to find specific transactions
-- Toggle between "All", "Expenses", and "Income" views
-- Switch between individual and grouped display modes
-
-### Viewing Charts
-Navigate through the app to access different visualization views:
-- Category distribution (pie chart)
-- Monthly trends (bar chart)
-- Detailed category analysis
+- Toggle between "All", "Expenses", and "Income" views to focus on specific transaction types
 
 ## Contributing
 
