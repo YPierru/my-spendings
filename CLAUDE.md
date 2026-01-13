@@ -22,7 +22,7 @@ flutter analyze
 flutter test
 
 # Run a single test file
-flutter test test/widget_test.dart
+flutter test test/models/transaction_test.dart
 ```
 
 ## Architecture
@@ -55,15 +55,16 @@ flutter test test/widget_test.dart
 ### Widget Structure
 - `SpendingDashboard` (stateful) - Root widget managing data loading and global filters
 - `TransactionListView` (stateful) - Displays grouped transactions by month and category with search and expense/income filtering. Accepts `onEdit`, `onDelete`, and `onAdd` callbacks for transaction management
+- `TransactionListSheet` (stateful) - Bottom sheet displaying transactions for a category with sorting options (date/amount, ascending/descending)
 - `TransactionForm` - Full-screen form for adding/editing transactions with category selection or creation
 - Chart widgets (`category_pie_chart.dart`, `monthly_bar_chart.dart`, `category_analysis_chart.dart`) - Visualizations using fl_chart
 
 ## Testing
 
-Test files are organized in `test/` mirroring the `lib/` structure:
+Lightweight test suite (28 tests) focused on core functionality:
 
 ```bash
-# Run all tests
+# Run all tests (~7 seconds)
 flutter test
 
 # Run specific test file
@@ -71,7 +72,7 @@ flutter test test/models/transaction_test.dart
 ```
 
 ### Test Coverage
-- **Transaction Model** (`test/models/transaction_test.dart`) - French date parsing for all 12 months with/without accents, amount parsing with comma decimals, toMap/fromMap serialization, copyWith
+- **Transaction Model** (`test/models/transaction_test.dart`) - French date parsing, amount parsing, serialization, properties
 - **CSV Parser** (`test/services/csv_parser_test.dart`) - Aggregation functions: getExpensesByCategory, getBalanceByCategory, getMonthlyTotals, getTotalExpenses, getTotalIncome
-- **TransactionForm** (`test/widgets/transaction_form_test.dart`) - Form rendering, validation, expense/income toggle, category selection
-- **TransactionListView** (`test/widgets/transaction_list_view_test.dart`) - List rendering, filtering, search, category grouping
+- **TransactionForm** (`test/widgets/transaction_form_test.dart`) - Form rendering, validation, expense/income toggle, category creation
+- **TransactionListView** (`test/widgets/transaction_list_view_test.dart`) - List rendering, filtering, search, bottom sheet, callbacks
