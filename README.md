@@ -1,27 +1,27 @@
-# My Spendings
+# Spendings
 
-A Flutter mobile application for personal finance tracking and expense management. Import transaction data from CSV files, visualize spending patterns with interactive charts, and manage your financial data with powerful filtering and search capabilities.
+A Flutter mobile application for personal finance tracking and expense management. Manage transactions with import/export capabilities, visualize spending patterns, and filter your financial data with powerful search and filtering features.
 
 ## Features
 
 ### Transaction Management
-- Import transactions from CSV files with French date and number formats
 - Add, edit, and delete transactions manually
 - Persistent local storage using SQLite
 - Support for both expenses and income tracking
+- Comes with sample data to get started quickly
+
+### CSV Import/Export
+- Import transactions from CSV files via file picker
+- Export transactions to CSV and share via email, messaging apps, etc.
+- CSV format: `Date;Category;Label;Amount` (semicolon-delimited)
+- Supports both dot and comma as decimal separators
 
 ### Filtering and Search
 - Filter transactions by category
 - Search transactions by label or description
 - Toggle between expenses-only and income-only views
 - View transactions grouped by category within each month
-- Categories are sorted alphabetically for easy navigation
-
-### Data Import
-- Automatic CSV parsing on first launch
-- Support for semicolon-delimited CSV files (Latin-1 encoding)
-- French date format support (e.g., "15-janv", "03-fevr")
-- French number format support (comma as decimal separator)
+- Categories are sorted alphabetically (case-insensitive)
 
 ## Getting Started
 
@@ -44,33 +44,26 @@ A Flutter mobile application for personal finance tracking and expense managemen
    flutter pub get
    ```
 
-3. Prepare your CSV data file:
-   - Place your CSV file at `res/data.csv`
-   - CSV format: `date;category;label;debit;credit`
-   - Date format: `DD-MMM` (French month abbreviations: janv, fevr, mars, etc.)
-   - Number format: Use comma as decimal separator (e.g., `12,50`)
-
-4. Run the app:
+3. Run the app:
    ```bash
    flutter run
    ```
 
 ## CSV Data Format
 
-The app expects a CSV file with the following structure:
+The app uses the following CSV structure for import/export:
 
 ```csv
-date;category;label;debit;credit
-15-janv;Groceries;Supermarket purchase;45,50;
-20-janv;Salary;Monthly salary;;2500,00
+Date;Category;Label;Amount
+15/03/2025;Groceries;Supermarket purchase;-45.50
+25/01/2025;Salary;Monthly salary;4500.00
 ```
 
 Format specifications:
 - Delimiter: semicolon (`;`)
-- Encoding: Latin-1 (ISO-8859-1)
-- Date format: `DD-MMM` where MMM is a French month abbreviation
-- Amounts: Comma as decimal separator
-- Parser stops at row containing "NE RIEN ECRIRE"
+- Date format: `DD/MM/YYYY`
+- Amount: negative for expenses, positive for income
+- Supports both dot (`.`) and comma (`,`) as decimal separator when importing
 
 ## Project Structure
 
@@ -80,7 +73,7 @@ lib/
 ├── models/
 │   └── transaction.dart           # Transaction data model
 ├── services/
-│   ├── csv_parser.dart            # CSV import logic
+│   ├── csv_service.dart           # CSV import/export logic
 │   └── database_service.dart      # SQLite persistence layer
 └── widgets/
     ├── transaction_list_view.dart # Transaction list with filters
@@ -88,9 +81,6 @@ lib/
     ├── category_pie_chart.dart    # Category distribution chart
     ├── monthly_bar_chart.dart     # Monthly trends chart
     └── category_analysis_chart.dart # Detailed category analysis
-
-res/
-└── data.csv                       # Transaction data file
 ```
 
 ## Tech Stack
@@ -101,7 +91,10 @@ res/
 
 ### Key Dependencies
 - **sqflite** (^2.3.0) - Local SQLite database for data persistence
-- **path** (^1.8.3) - File path manipulation utilities
+- **fl_chart** (^0.69.0) - Chart visualizations
+- **share_plus** (^10.0.0) - Native share functionality for CSV export
+- **path_provider** (^2.1.0) - Temporary file storage
+- **file_picker** (^8.0.0) - File selection for CSV import
 
 ### Architecture Patterns
 - Singleton pattern for database service
@@ -138,10 +131,10 @@ flutter build ios --release
 ## Usage
 
 ### First Launch
-On first launch, the app automatically imports transactions from `res/data.csv` and stores them in a local SQLite database. Subsequent launches load data from the database for faster performance.
+On first launch, the app seeds sample transaction data into the SQLite database. This gives you a realistic dataset to explore the app's features.
 
 ### Viewing Transactions
-Transactions are displayed grouped by category within each month. Categories are sorted alphabetically for easy navigation. Each category card shows:
+Transactions are displayed grouped by category within each month. Categories are sorted alphabetically (case-insensitive). Each category card shows:
 - Category name
 - Total amount (expenses in red, income in green)
 - Number of transactions
@@ -172,6 +165,17 @@ Transactions are displayed grouped by category within each month. Categories are
 - Use the category dropdown at the top to filter by specific categories
 - Use the search bar in the transaction list to find specific transactions
 - Toggle between "All", "Expenses", and "Income" views to focus on specific transaction types
+
+### Importing CSV
+1. Tap the menu icon (three dots) in the app bar
+2. Select "Import CSV..."
+3. Choose a CSV file from your device
+4. Transactions will be added to your existing data
+
+### Exporting CSV
+1. Tap the menu icon (three dots) in the app bar
+2. Select "Export CSV..."
+3. Choose how to share the file (email, messaging apps, save to files, etc.)
 
 ## Contributing
 

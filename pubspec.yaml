@@ -37,6 +37,9 @@ dependencies:
   fl_chart: ^0.69.0
   sqflite: ^2.3.0
   path: ^1.8.3
+  share_plus: ^10.0.0
+  path_provider: ^2.1.0
+  file_picker: ^8.0.0
 
 dev_dependencies:
   flutter_test:
@@ -59,9 +62,6 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-
-  assets:
-    - res/data.csv
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

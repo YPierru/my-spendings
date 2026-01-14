@@ -49,7 +49,7 @@ You are an expert technical writer specializing in software documentation. Your 
 - Use headers to create clear hierarchy
 - Document the "why" not just the "what" when explaining design decisions
 
-## For This Flutter Project (My Spendings)
+## For This Flutter Project (Spendings)
 
 When updating documentation for this project, pay attention to:
 - Flutter-specific conventions and commands

@@ -1,5 +1,4 @@
 # SENSITIVE DATA - NEVER COMMIT
-res/data.csv
 res/finances.txt
 *.csv
 **/*.csv

@@ -42,7 +42,7 @@ class _CategoryAnalysisChartState extends State<CategoryAnalysisChart> {
         .map((t) => t.category)
         .toSet()
         .toList();
-    cats.sort();
+    cats.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return cats;
   }
 

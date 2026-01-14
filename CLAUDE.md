@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is "My Spendings" - a Flutter mobile app for personal finance tracking. It parses transaction data from a CSV file, persists to SQLite, and displays spending/income with filtering and search capabilities.
+This is "Spendings" - a Flutter mobile app for personal finance tracking. It persists transaction data to SQLite and displays spending/income with filtering and search capabilities.
 
 ## Common Commands
 
@@ -28,18 +28,18 @@ flutter test test/models/transaction_test.dart
 ## Architecture
 
 ### Data Flow
-1. **CSV Parser** (`lib/services/csv_parser.dart`) - Loads and parses `res/data.csv` (semicolon-delimited, Latin-1 encoded) containing transaction data with French date formats (e.g., "15-janv")
-2. **Database Service** (`lib/services/database_service.dart`) - SQLite persistence layer (singleton pattern). On first run, imports CSV data; subsequent launches use cached database
+1. **Database Service** (`lib/services/database_service.dart`) - SQLite persistence layer (singleton pattern). Seeds initial transaction data on first run; subsequent launches use cached database
+2. **CSV Service** (`lib/services/csv_service.dart`) - Handles CSV import/export with format `Date;Category;Label;Amount`
 3. **Transaction Model** (`lib/models/transaction.dart`) - Data class with `parseDate()` for French month names and `parseAmount()` for comma decimal separator. Supports `toMap()`/`fromMap()` for database serialization
-4. **Dashboard** (`lib/main.dart`) - Main widget that loads transactions and provides category filtering
-5. **List View** (`lib/widgets/transaction_list_view.dart`) - Displays transactions grouped by category within each month. Categories are sorted alphabetically. Tapping a category opens a bottom sheet with all transactions for that category
+4. **Dashboard** (`lib/main.dart`) - Main widget that loads transactions, provides category filtering, and CSV import/export via menu
+5. **List View** (`lib/widgets/transaction_list_view.dart`) - Displays transactions grouped by category within each month. Categories are sorted alphabetically (case-insensitive). Tapping a category opens a bottom sheet with all transactions for that category
 
 ### Key Implementation Details
-- CSV uses semicolon delimiter with columns: date, category, label, debit, credit
-- French month abbreviations are normalized (accents removed) before parsing: janv→1, fevr→2, mars→3, avr→4, mai→5, juin→6, juil→7, aout→8, sept→9, oct→10, nov→11, dec→12
 - Transactions can be either expenses (debit > 0) or income (credit > 0)
-- CSV parsing stops at "NE RIEN ECRIRE" marker row
+- Initial transaction data is seeded into the database on first run via `_seedInitialData()`
 - Uses `sqflite` package for persistence and `fl_chart` for visualizations
+- CSV export uses `share_plus` for native Android/iOS share functionality
+- CSV import uses `file_picker` for file selection
 
 ### UI/UX Flow
 - Transactions are always displayed grouped by category (no toggle between detail and grouped views)
@@ -61,7 +61,7 @@ flutter test test/models/transaction_test.dart
 
 ## Testing
 
-Lightweight test suite (28 tests) focused on core functionality:
+Lightweight test suite (38 tests) focused on core functionality:
 
 ```bash
 # Run all tests (~7 seconds)
@@ -73,6 +73,6 @@ flutter test test/models/transaction_test.dart
 
 ### Test Coverage
 - **Transaction Model** (`test/models/transaction_test.dart`) - French date parsing, amount parsing, serialization, properties
-- **CSV Parser** (`test/services/csv_parser_test.dart`) - Aggregation functions: getExpensesByCategory, getBalanceByCategory, getMonthlyTotals, getTotalExpenses, getTotalIncome
+- **CSV Service** (`test/services/csv_service_test.dart`) - CSV generation, parsing, roundtrip export/import
 - **TransactionForm** (`test/widgets/transaction_form_test.dart`) - Form rendering, validation, expense/income toggle, category creation
 - **TransactionListView** (`test/widgets/transaction_list_view_test.dart`) - List rendering, filtering, search, bottom sheet, callbacks

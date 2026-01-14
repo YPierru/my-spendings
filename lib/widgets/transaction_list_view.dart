@@ -5,7 +5,7 @@ class TransactionListView extends StatefulWidget {
   final List<Transaction> transactions;
   final Function(Transaction)? onEdit;
   final Function(int)? onDelete;
-  final VoidCallback? onAdd;
+  final void Function(String? category)? onAdd;
 
   const TransactionListView({
     super.key,
@@ -154,7 +154,7 @@ class _TransactionListViewState extends State<TransactionListView> {
               ? FloatingActionButton(
                   onPressed: () {
                     Navigator.pop(sheetContext);
-                    widget.onAdd!();
+                    widget.onAdd!(category);
                   },
                   child: const Icon(Icons.add),
                 )
@@ -411,7 +411,7 @@ class _TransactionListViewState extends State<TransactionListView> {
         itemBuilder: (context, monthIndex) {
           final monthKey = monthKeys[monthIndex];
           final categories = grouped[monthKey]!;
-          final categoryNames = categories.keys.toList()..sort();
+          final categoryNames = categories.keys.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
