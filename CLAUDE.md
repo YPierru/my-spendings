@@ -28,11 +28,12 @@ flutter test test/models/transaction_test.dart
 ## Architecture
 
 ### Data Flow
-1. **Database Service** (`lib/services/database_service.dart`) - SQLite persistence layer (singleton pattern). Seeds initial transaction data on first run; subsequent launches use cached database
+1. **Database Service** (`lib/services/database_service.dart`) - SQLite persistence layer (singleton pattern). Seeds initial transaction data on first run; subsequent launches use cached database. Manages both transactions and balance tables
 2. **CSV Service** (`lib/services/csv_service.dart`) - Handles CSV import/export with format `Date;Category;Label;Amount`
 3. **Transaction Model** (`lib/models/transaction.dart`) - Data class with `parseDate()` for French month names and `parseAmount()` for comma decimal separator. Supports `toMap()`/`fromMap()` for database serialization
-4. **Dashboard** (`lib/main.dart`) - Main widget that loads transactions, provides category filtering, and CSV import/export via menu
-5. **List View** (`lib/widgets/transaction_list_view.dart`) - Displays transactions grouped by category within each month. Categories are sorted alphabetically (case-insensitive). Tapping a category opens a bottom sheet with all transactions for that category
+4. **Balance Model** (`lib/models/balance.dart`) - Data class storing initial balance amount and effective date. Supports `toMap()`/`fromMap()` for database serialization
+5. **Dashboard** (`lib/main.dart`) - Main widget that loads transactions and balance, provides category filtering, CSV import/export, and balance management via menu
+6. **List View** (`lib/widgets/transaction_list_view.dart`) - Displays transactions grouped by category within each month. Categories are sorted alphabetically (case-insensitive). Tapping a category opens a bottom sheet with all transactions for that category
 
 ### Key Implementation Details
 - Transactions can be either expenses (debit > 0) or income (credit > 0)
@@ -40,6 +41,29 @@ flutter test test/models/transaction_test.dart
 - Uses `sqflite` package for persistence and `fl_chart` for visualizations
 - CSV export uses `share_plus` for native Android/iOS share functionality
 - CSV import uses `file_picker` for file selection
+
+### Balance Tracking
+The app supports optional balance tracking with the following features:
+- **Balance Model**: Stores an initial amount and effective date
+- **Balance Calculation**: Current balance is calculated using the formula:
+  ```
+  Current Balance = Initial Amount + Sum(Credits) - Sum(Debits)
+  ```
+  Only transactions on or after the balance's effective date are included in the calculation
+- **Database Methods**:
+  - `getBalance()` - Retrieves the stored balance (single row table)
+  - `setBalance(Balance)` - Saves or updates the balance (replaces existing)
+  - `deleteBalance()` - Removes balance tracking
+  - `calculateCurrentBalance()` - Computes current balance from initial amount and transactions
+- **Auto-update**: Balance recalculates automatically when transactions are added, edited, or deleted
+- **UI Integration**:
+  - `BalanceHeader` widget displays below the AppBar showing current balance and effective date
+  - When no balance is set, shows "Tap to set initial balance" prompt
+  - Tapping the header opens the balance dialog for editing
+  - Balance is color-coded (green for positive, red for negative)
+- **Menu Options**:
+  - "Set Balance..." (when no balance exists) or "Edit Balance..." (when balance exists)
+  - "Reset Balance" (only visible when balance exists) - removes balance tracking with confirmation dialog
 
 ### UI/UX Flow
 - Transactions are always displayed grouped by category (no toggle between detail and grouped views)
@@ -53,7 +77,9 @@ flutter test test/models/transaction_test.dart
 - The floating action button (+) appears in the bottom sheet, allowing users to add new transactions to the selected category
 
 ### Widget Structure
-- `SpendingDashboard` (stateful) - Root widget managing data loading and global filters
+- `SpendingDashboard` (stateful) - Root widget managing data loading, global filters, and balance state
+- `BalanceHeader` (stateless) - Displays current balance below AppBar, or prompt to set balance. Shows balance amount (color-coded), effective date, and edit icon. Tappable to open balance dialog
+- `BalanceDialog` (stateful) - Dialog for setting/editing balance with amount input and date picker. Validates numeric input and supports comma/dot decimal separators
 - `TransactionListView` (stateful) - Displays grouped transactions by month and category with search and expense/income filtering. Accepts `onEdit`, `onDelete`, and `onAdd` callbacks for transaction management
 - `TransactionListSheet` (stateful) - Bottom sheet displaying transactions for a category with sorting options (date/amount, ascending/descending)
 - `TransactionForm` - Full-screen form for adding/editing transactions with category selection or creation

@@ -251,33 +251,6 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
     }
   }
 
-  Future<void> _resetBalance() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reset Balance'),
-        content: const Text(
-            'Are you sure you want to remove the balance tracking? This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Reset'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await _db.deleteBalance();
-      await _loadData();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -293,8 +266,6 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
                 _importFromCsv();
               } else if (value == 'set_balance') {
                 _showBalanceDialog();
-              } else if (value == 'reset_balance') {
-                _resetBalance();
               }
             },
             itemBuilder: (context) => [
@@ -307,15 +278,10 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
                 child: Text('Export CSV...'),
               ),
               const PopupMenuDivider(),
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: 'set_balance',
-                child: Text(_balance != null ? 'Edit Balance...' : 'Set Balance...'),
+                child: Text('Set Balance...'),
               ),
-              if (_balance != null)
-                const PopupMenuItem(
-                  value: 'reset_balance',
-                  child: Text('Reset Balance'),
-                ),
             ],
           ),
         ],
@@ -347,7 +313,6 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
         BalanceHeader(
           currentBalance: _currentBalance,
           balanceInfo: _balance,
-          onTap: _showBalanceDialog,
         ),
         _buildFilters(),
         Expanded(
