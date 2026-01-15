@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart' hide Transaction;
 import 'package:path/path.dart';
+import '../models/balance.dart';
 import '../models/transaction.dart';
 
 class DatabaseService {
@@ -22,8 +23,9 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -38,7 +40,28 @@ class DatabaseService {
         credit REAL DEFAULT 0
       )
     ''');
+    await db.execute('''
+      CREATE TABLE balance (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        amount REAL NOT NULL,
+        date TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    ''');
     await _seedInitialData(db);
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE balance (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          amount REAL NOT NULL,
+          date TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )
+      ''');
+    }
   }
 
   Future<void> _seedInitialData(Database db) async {
@@ -675,5 +698,52 @@ class DatabaseService {
       'SELECT DISTINCT category FROM transactions ORDER BY category',
     );
     return result.map((row) => row['category'] as String).toList();
+  }
+
+  Future<Balance?> getBalance() async {
+    final db = await database;
+    final List<Map<String, Object?>> maps = await db.query(
+      'balance',
+      orderBy: 'created_at DESC',
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return Balance.fromMap(maps.first);
+  }
+
+  Future<int> setBalance(Balance balance) async {
+    final db = await database;
+    await db.delete('balance');
+    return await db.insert('balance', balance.toMap());
+  }
+
+  Future<int> deleteBalance() async {
+    final db = await database;
+    return await db.delete('balance');
+  }
+
+  Future<double> calculateCurrentBalance() async {
+    final balance = await getBalance();
+    if (balance == null) return 0.0;
+
+    final db = await database;
+    final balanceDateStr = balance.date.toIso8601String();
+
+    final creditResult = await db.rawQuery('''
+      SELECT COALESCE(SUM(credit), 0) as total
+      FROM transactions
+      WHERE date >= ?
+    ''', [balanceDateStr]);
+
+    final debitResult = await db.rawQuery('''
+      SELECT COALESCE(SUM(debit), 0) as total
+      FROM transactions
+      WHERE date >= ?
+    ''', [balanceDateStr]);
+
+    final totalCredits = (creditResult.first['total'] as num).toDouble();
+    final totalDebits = (debitResult.first['total'] as num).toDouble();
+
+    return balance.amount + totalCredits - totalDebits;
   }
 }

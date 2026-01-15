@@ -3,9 +3,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'models/balance.dart';
 import 'models/transaction.dart';
 import 'services/csv_service.dart';
 import 'services/database_service.dart';
+import 'widgets/balance_dialog.dart';
+import 'widgets/balance_header.dart';
 import 'widgets/transaction_list_view.dart';
 import 'widgets/transaction_form.dart';
 
@@ -109,6 +112,8 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
   bool _isLoading = true;
   String? _error;
   String? _selectedCategory;
+  Balance? _balance;
+  double _currentBalance = 0.0;
 
   List<Transaction> get _filteredTransactions {
     if (_transactions == null) return [];
@@ -135,8 +140,12 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
   Future<void> _loadData() async {
     try {
       final transactions = await _db.getAllTransactions();
+      final balance = await _db.getBalance();
+      final currentBalance = await _db.calculateCurrentBalance();
       setState(() {
         _transactions = transactions;
+        _balance = balance;
+        _currentBalance = currentBalance;
         _isLoading = false;
       });
     } catch (e) {
@@ -230,6 +239,45 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
     }
   }
 
+  Future<void> _showBalanceDialog() async {
+    final result = await showDialog<Balance>(
+      context: context,
+      builder: (context) => BalanceDialog(existingBalance: _balance),
+    );
+
+    if (result != null) {
+      await _db.setBalance(result);
+      await _loadData();
+    }
+  }
+
+  Future<void> _resetBalance() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Balance'),
+        content: const Text(
+            'Are you sure you want to remove the balance tracking? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _db.deleteBalance();
+      await _loadData();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -243,6 +291,10 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
                 _exportToCsv();
               } else if (value == 'import') {
                 _importFromCsv();
+              } else if (value == 'set_balance') {
+                _showBalanceDialog();
+              } else if (value == 'reset_balance') {
+                _resetBalance();
               }
             },
             itemBuilder: (context) => [
@@ -254,6 +306,16 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
                 value: 'export',
                 child: Text('Export CSV...'),
               ),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'set_balance',
+                child: Text(_balance != null ? 'Edit Balance...' : 'Set Balance...'),
+              ),
+              if (_balance != null)
+                const PopupMenuItem(
+                  value: 'reset_balance',
+                  child: Text('Reset Balance'),
+                ),
             ],
           ),
         ],
@@ -282,6 +344,11 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
 
     return Column(
       children: [
+        BalanceHeader(
+          currentBalance: _currentBalance,
+          balanceInfo: _balance,
+          onTap: _showBalanceDialog,
+        ),
         _buildFilters(),
         Expanded(
           child: Padding(
