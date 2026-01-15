@@ -158,9 +158,8 @@ Root stateful widget managing app state.
 - `_exportToCsv()` - Generate CSV → temp file → native share
 - `_openTransactionForm()` - Navigate to form
 - `_showBalanceDialog()` - Open dialog to set/edit balance
-- `_resetBalance()` - Confirmation dialog → delete balance
 
-**UI:** AppBar with menu (Import/Export/Balance), BalanceHeader, FAB (Add), Category dropdown, TransactionListView
+**UI:** AppBar with menu (Import/Export/Set Balance), BalanceHeader (only visible when balance is set), FAB (Add), Category dropdown, TransactionListView
 
 ### TransactionListView (`lib/widgets/transaction_list_view.dart`)
 
@@ -225,13 +224,13 @@ Header widget displayed below AppBar showing balance.
 BalanceHeader({
   required double currentBalance,
   required Balance? balanceInfo,
-  required VoidCallback onTap,
 })
 ```
 
 **Display:**
-- No balance: "Tap to set initial balance" prompt
-- With balance: Current balance (green/red), "Since [date]", edit icon
+- No balance: Hidden (returns SizedBox.shrink)
+- With balance: Current balance (green/red)
+- Not clickable - balance is modified via menu only
 
 ### BalanceDialog (`lib/widgets/balance_dialog.dart`)
 
@@ -259,8 +258,8 @@ BalanceDialog({Balance? existingBalance})
 ```
 MyApp
 └── SpendingDashboard (manages all state)
-    ├── AppBar (Import/Export/Balance menu)
-    ├── BalanceHeader (tap → BalanceDialog)
+    ├── AppBar (Import/Export/Set Balance menu)
+    ├── BalanceHeader (display only, hidden when no balance)
     ├── Category dropdown filter
     └── TransactionListView
         ├── Search TextField
@@ -271,20 +270,19 @@ MyApp
                 └── FAB (add to category)
 
 TransactionForm (full-screen, returned via Navigator.pop)
-BalanceDialog (AlertDialog, returned via Navigator.pop)
+BalanceDialog (AlertDialog via menu, returned via Navigator.pop)
 ```
 
 ## Data Flow
 
 1. **App Launch:** `SpendingDashboard.initState()` → `_loadData()` → loads transactions + balance + calculates current balance
-2. **Display:** `TransactionListView` groups by month/category, `BalanceHeader` shows current balance
+2. **Display:** `TransactionListView` groups by month/category, `BalanceHeader` shows current balance (if set)
 3. **Add:** FAB → `TransactionForm` → `Navigator.pop(transaction)` → `DatabaseService.insertTransaction()` → `_loadData()` (balance auto-updates)
 4. **Edit:** Edit button → `TransactionForm(transaction)` → `Navigator.pop(updated)` → `DatabaseService.updateTransaction()` → `_loadData()` (balance auto-updates)
 5. **Delete:** Delete button → Confirm dialog → `DatabaseService.deleteTransaction()` → `_loadData()` (balance auto-updates)
 6. **Import:** Menu → FilePicker → `CsvService.parseCsv()` → `DatabaseService.importFromCsv()` → `_loadData()`
 7. **Export:** Menu → `CsvService.generateCsv()` → temp file → `share_plus`
-8. **Set Balance:** BalanceHeader tap or Menu → `BalanceDialog` → `Navigator.pop(balance)` → `DatabaseService.setBalance()` → `_loadData()`
-9. **Reset Balance:** Menu → Confirm dialog → `DatabaseService.deleteBalance()` → `_loadData()`
+8. **Set/Edit Balance:** Menu "Set Balance..." → `BalanceDialog` → `Navigator.pop(balance)` → `DatabaseService.setBalance()` → `_loadData()`
 
 **Balance Calculation:** `Current = Initial Amount + Sum(Credits since date) - Sum(Debits since date)`
 

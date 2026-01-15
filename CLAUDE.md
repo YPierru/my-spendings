@@ -57,13 +57,12 @@ The app supports optional balance tracking with the following features:
   - `calculateCurrentBalance()` - Computes current balance from initial amount and transactions
 - **Auto-update**: Balance recalculates automatically when transactions are added, edited, or deleted
 - **UI Integration**:
-  - `BalanceHeader` widget displays below the AppBar showing current balance and effective date
-  - When no balance is set, shows "Tap to set initial balance" prompt
-  - Tapping the header opens the balance dialog for editing
-  - Balance is color-coded (green for positive, red for negative)
+  - `BalanceHeader` widget displays below the AppBar when a balance is set
+  - Shows current balance with color-coding (green for positive, red for negative)
+  - When no balance is set, shows nothing (hidden)
+  - Not clickable - balance can only be modified via menu
 - **Menu Options**:
-  - "Set Balance..." (when no balance exists) or "Edit Balance..." (when balance exists)
-  - "Reset Balance" (only visible when balance exists) - removes balance tracking with confirmation dialog
+  - "Set Balance..." - Opens dialog to set/modify the balance (always shown with same label regardless of whether balance exists)
 
 ### UI/UX Flow
 - Transactions are always displayed grouped by category (no toggle between detail and grouped views)
@@ -78,7 +77,7 @@ The app supports optional balance tracking with the following features:
 
 ### Widget Structure
 - `SpendingDashboard` (stateful) - Root widget managing data loading, global filters, and balance state
-- `BalanceHeader` (stateless) - Displays current balance below AppBar, or prompt to set balance. Shows balance amount (color-coded), effective date, and edit icon. Tappable to open balance dialog
+- `BalanceHeader` (stateless) - Displays current balance below AppBar when balance is set. Shows balance amount (color-coded). Hidden when no balance exists. Not clickable
 - `BalanceDialog` (stateful) - Dialog for setting/editing balance with amount input and date picker. Validates numeric input and supports comma/dot decimal separators
 - `TransactionListView` (stateful) - Displays grouped transactions by month and category with search and expense/income filtering. Accepts `onEdit`, `onDelete`, and `onAdd` callbacks for transaction management
 - `TransactionListSheet` (stateful) - Bottom sheet displaying transactions for a category with sorting options (date/amount, ascending/descending)
