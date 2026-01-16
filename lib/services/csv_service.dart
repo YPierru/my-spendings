@@ -27,7 +27,10 @@ class CsvService {
   /// Date format: DD/MM/YYYY
   /// Amount: negative for expenses, positive for income
   /// Returns a record with (transactions, skippedCount)
-  static ({List<Transaction> transactions, int skipped}) parseCsv(String content) {
+  static ({List<Transaction> transactions, int skipped}) parseCsv(
+    String content, {
+    required int accountId,
+  }) {
     final lines = content.split('\n');
     final transactions = <Transaction>[];
     int skipped = 0;
@@ -41,7 +44,7 @@ class CsvService {
         continue;
       }
 
-      final transaction = parseLine(line);
+      final transaction = parseLine(line, accountId: accountId);
       if (transaction != null) {
         transactions.add(transaction);
       } else {
@@ -54,7 +57,7 @@ class CsvService {
 
   /// Parses a single CSV line into a Transaction
   /// Returns null if the line cannot be parsed
-  static Transaction? parseLine(String line) {
+  static Transaction? parseLine(String line, {required int accountId}) {
     final parts = line.split(';');
     if (parts.length < 4) return null;
 
@@ -74,6 +77,7 @@ class CsvService {
       final amount = double.parse(parts[3].trim().replaceAll(',', '.'));
 
       return Transaction(
+        accountId: accountId,
         date: date,
         category: category,
         label: label,

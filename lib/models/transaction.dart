@@ -1,5 +1,6 @@
 class Transaction {
   final int? id;
+  final int accountId;
   final DateTime date;
   final String category;
   final String label;
@@ -8,6 +9,7 @@ class Transaction {
 
   Transaction({
     this.id,
+    required this.accountId,
     required this.date,
     required this.category,
     required this.label,
@@ -22,6 +24,7 @@ class Transaction {
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
+      'account_id': accountId,
       'date': date.toIso8601String(),
       'category': category,
       'label': label,
@@ -33,6 +36,7 @@ class Transaction {
   factory Transaction.fromMap(Map<String, dynamic> map) {
     return Transaction(
       id: map['id'] as int?,
+      accountId: (map['account_id'] as int?) ?? 1,
       date: DateTime.parse(map['date'] as String),
       category: map['category'] as String,
       label: map['label'] as String? ?? '',
@@ -43,6 +47,7 @@ class Transaction {
 
   Transaction copyWith({
     int? id,
+    int? accountId,
     DateTime? date,
     String? category,
     String? label,
@@ -51,6 +56,7 @@ class Transaction {
   }) {
     return Transaction(
       id: id ?? this.id,
+      accountId: accountId ?? this.accountId,
       date: date ?? this.date,
       category: category ?? this.category,
       label: label ?? this.label,

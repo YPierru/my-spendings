@@ -13,6 +13,7 @@ void main() {
   final sampleTransactions = [
     Transaction(
       id: 1,
+      accountId: 1,
       date: DateTime(2025, 1, 15),
       category: 'Food',
       label: 'Groceries',
@@ -21,6 +22,7 @@ void main() {
     ),
     Transaction(
       id: 2,
+      accountId: 1,
       date: DateTime(2025, 1, 20),
       category: 'Salary',
       label: 'Monthly pay',
@@ -29,6 +31,7 @@ void main() {
     ),
     Transaction(
       id: 3,
+      accountId: 1,
       date: DateTime(2025, 1, 25),
       category: 'Transport',
       label: 'Gas',

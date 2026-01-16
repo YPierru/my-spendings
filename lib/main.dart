@@ -3,12 +3,16 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'models/account.dart';
 import 'models/balance.dart';
 import 'models/transaction.dart';
 import 'services/csv_service.dart';
 import 'services/database_service.dart';
+import 'widgets/account_form_dialog.dart';
+import 'widgets/account_list_screen.dart';
 import 'widgets/balance_dialog.dart';
 import 'widgets/balance_header.dart';
+import 'widgets/delete_account_dialog.dart';
 import 'widgets/transaction_list_view.dart';
 import 'widgets/transaction_form.dart';
 
@@ -94,13 +98,119 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const SpendingDashboard(),
+      home: const AccountManager(),
     );
   }
 }
 
+// ============ Account Manager ============
+// Entry point that handles account selection and navigation to SpendingDashboard
+
+class AccountManager extends StatefulWidget {
+  const AccountManager({super.key});
+
+  @override
+  State<AccountManager> createState() => _AccountManagerState();
+}
+
+class _AccountManagerState extends State<AccountManager> {
+  final DatabaseService _db = DatabaseService();
+  List<AccountWithBalance> _accounts = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAccounts();
+  }
+
+  Future<void> _loadAccounts() async {
+    setState(() => _isLoading = true);
+    try {
+      final accounts = await _db.getAllAccounts();
+      final accountsWithBalance = <AccountWithBalance>[];
+
+      for (final account in accounts) {
+        final balance = await _db.calculateCurrentBalanceForAccount(account.id!);
+        accountsWithBalance.add(AccountWithBalance(
+          account: account,
+          balance: balance,
+        ));
+      }
+
+      setState(() {
+        _accounts = accountsWithBalance;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading accounts: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _addAccount() async {
+    final result = await showDialog<Account>(
+      context: context,
+      builder: (context) => const AccountFormDialog(),
+    );
+
+    if (result != null) {
+      await _db.insertAccount(result);
+      await _loadAccounts();
+    }
+  }
+
+  Future<void> _deleteAccount(int id) async {
+    final account = _accounts.firstWhere((a) => a.account.id == id);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => DeleteAccountDialog(accountName: account.account.name),
+    );
+
+    if (confirmed == true) {
+      await _db.deleteAccount(id);
+      await _loadAccounts();
+    }
+  }
+
+  void _selectAccount(Account account) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SpendingDashboard(account: account),
+      ),
+    ).then((_) => _loadAccounts());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return AccountListScreen(
+      accounts: _accounts,
+      onAddAccount: _addAccount,
+      onDeleteAccount: _deleteAccount,
+      onSelectAccount: _selectAccount,
+    );
+  }
+}
+
+// ============ Spending Dashboard ============
+// Shows transactions for a specific account
+
 class SpendingDashboard extends StatefulWidget {
-  const SpendingDashboard({super.key});
+  final Account account;
+
+  const SpendingDashboard({super.key, required this.account});
 
   @override
   State<SpendingDashboard> createState() => _SpendingDashboardState();
@@ -114,6 +224,8 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
   String? _selectedCategory;
   Balance? _balance;
   double _currentBalance = 0.0;
+
+  int get _accountId => widget.account.id!;
 
   List<Transaction> get _filteredTransactions {
     if (_transactions == null) return [];
@@ -139,9 +251,9 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
 
   Future<void> _loadData() async {
     try {
-      final transactions = await _db.getAllTransactions();
-      final balance = await _db.getBalance();
-      final currentBalance = await _db.calculateCurrentBalance();
+      final transactions = await _db.getTransactionsByAccount(_accountId);
+      final balance = await _db.getBalanceForAccount(_accountId);
+      final currentBalance = await _db.calculateCurrentBalanceForAccount(_accountId);
       setState(() {
         _transactions = transactions;
         _balance = balance;
@@ -157,7 +269,9 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
   }
 
   Future<void> _addTransaction(Transaction transaction) async {
-    await _db.insertTransaction(transaction);
+    // Ensure the transaction has the correct accountId
+    final transactionWithAccount = transaction.copyWith(accountId: _accountId);
+    await _db.insertTransaction(transactionWithAccount);
     await _loadData();
   }
 
@@ -181,7 +295,7 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
 
     final file = File(result.files.single.path!);
     final content = await file.readAsString();
-    final parseResult = CsvService.parseCsv(content);
+    final parseResult = CsvService.parseCsv(content, accountId: _accountId);
 
     for (final transaction in parseResult.transactions) {
       await _db.insertTransaction(transaction);
@@ -226,6 +340,7 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
           transaction: transaction,
           categories: _availableCategories,
           initialCategory: category,
+          accountId: _accountId,
         ),
       ),
     );
@@ -242,11 +357,14 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
   Future<void> _showBalanceDialog() async {
     final result = await showDialog<Balance>(
       context: context,
-      builder: (context) => BalanceDialog(existingBalance: _balance),
+      builder: (context) => BalanceDialog(
+        existingBalance: _balance,
+        accountId: _accountId,
+      ),
     );
 
     if (result != null) {
-      await _db.setBalance(result);
+      await _db.setBalanceForAccount(result);
       await _loadData();
     }
   }
@@ -255,7 +373,7 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Spendings'),
+        title: Text(widget.account.name),
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),

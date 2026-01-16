@@ -12,6 +12,7 @@ void main() {
     test('formats expense as negative amount', () {
       final transactions = [
         Transaction(
+          accountId: 1,
           date: DateTime(2025, 3, 15),
           category: 'Food',
           label: 'Groceries',
@@ -30,6 +31,7 @@ void main() {
     test('formats income as positive amount', () {
       final transactions = [
         Transaction(
+          accountId: 1,
           date: DateTime(2025, 1, 25),
           category: 'Salary',
           label: 'Monthly salary',
@@ -48,6 +50,7 @@ void main() {
     test('pads single digit day and month with zero', () {
       final transactions = [
         Transaction(
+          accountId: 1,
           date: DateTime(2025, 1, 5),
           category: 'Test',
           label: 'Test',
@@ -63,6 +66,7 @@ void main() {
     test('replaces semicolons in label and category with commas', () {
       final transactions = [
         Transaction(
+          accountId: 1,
           date: DateTime(2025, 6, 15),
           category: 'Cat;egory',
           label: 'Lab;el',
@@ -80,6 +84,7 @@ void main() {
     test('handles multiple transactions', () {
       final transactions = [
         Transaction(
+          accountId: 1,
           date: DateTime(2025, 1, 10),
           category: 'Food',
           label: 'Lunch',
@@ -87,6 +92,7 @@ void main() {
           credit: 0.0,
         ),
         Transaction(
+          accountId: 1,
           date: DateTime(2025, 1, 15),
           category: 'Salary',
           label: 'Paycheck',
@@ -111,17 +117,19 @@ void main() {
 15/03/2025;Food;Groceries;-50.00
 25/01/2025;Salary;Monthly;4500.00''';
 
-      final result = CsvService.parseCsv(csv);
+      final result = CsvService.parseCsv(csv, accountId: 1);
 
       expect(result.transactions.length, 2);
       expect(result.skipped, 0);
 
+      expect(result.transactions[0].accountId, 1);
       expect(result.transactions[0].category, 'Food');
       expect(result.transactions[0].label, 'Groceries');
       expect(result.transactions[0].debit, 50.0);
       expect(result.transactions[0].credit, 0.0);
       expect(result.transactions[0].date, DateTime(2025, 3, 15));
 
+      expect(result.transactions[1].accountId, 1);
       expect(result.transactions[1].category, 'Salary');
       expect(result.transactions[1].credit, 4500.0);
     });
@@ -133,7 +141,7 @@ invalid line
 25/01/2025;Salary;Monthly;4500.00
 another;bad''';
 
-      final result = CsvService.parseCsv(csv);
+      final result = CsvService.parseCsv(csv, accountId: 1);
 
       expect(result.transactions.length, 2);
       expect(result.skipped, 2);
@@ -147,7 +155,7 @@ another;bad''';
 25/01/2025;Salary;Monthly;4500.00
 ''';
 
-      final result = CsvService.parseCsv(csv);
+      final result = CsvService.parseCsv(csv, accountId: 1);
 
       expect(result.transactions.length, 2);
       expect(result.skipped, 0);
@@ -157,7 +165,7 @@ another;bad''';
       const csv = '''15/03/2025;Food;Groceries;-50.00
 25/01/2025;Salary;Monthly;4500.00''';
 
-      final result = CsvService.parseCsv(csv);
+      final result = CsvService.parseCsv(csv, accountId: 1);
 
       expect(result.transactions.length, 2);
       expect(result.skipped, 0);
@@ -167,7 +175,7 @@ another;bad''';
       const csv = '''Date;Category;Label;Amount
 15/03/2025;Food;Groceries;-50,99''';
 
-      final result = CsvService.parseCsv(csv);
+      final result = CsvService.parseCsv(csv, accountId: 1);
 
       expect(result.transactions.length, 1);
       expect(result.transactions[0].debit, 50.99);
@@ -176,10 +184,11 @@ another;bad''';
 
   group('CsvService.parseLine', () {
     test('parses valid expense line', () {
-      final transaction = CsvService.parseLine('15/03/2025;Food;Groceries;-50.00');
+      final transaction = CsvService.parseLine('15/03/2025;Food;Groceries;-50.00', accountId: 1);
 
       expect(transaction, isNotNull);
-      expect(transaction!.date, DateTime(2025, 3, 15));
+      expect(transaction!.accountId, 1);
+      expect(transaction.date, DateTime(2025, 3, 15));
       expect(transaction.category, 'Food');
       expect(transaction.label, 'Groceries');
       expect(transaction.debit, 50.0);
@@ -188,10 +197,11 @@ another;bad''';
     });
 
     test('parses valid income line', () {
-      final transaction = CsvService.parseLine('25/01/2025;Salary;Monthly;4500.00');
+      final transaction = CsvService.parseLine('25/01/2025;Salary;Monthly;4500.00', accountId: 1);
 
       expect(transaction, isNotNull);
-      expect(transaction!.date, DateTime(2025, 1, 25));
+      expect(transaction!.accountId, 1);
+      expect(transaction.date, DateTime(2025, 1, 25));
       expect(transaction.category, 'Salary');
       expect(transaction.label, 'Monthly');
       expect(transaction.debit, 0.0);
@@ -200,23 +210,23 @@ another;bad''';
     });
 
     test('returns null for line with too few parts', () {
-      expect(CsvService.parseLine('15/03/2025;Food;Groceries'), isNull);
-      expect(CsvService.parseLine('15/03/2025;Food'), isNull);
-      expect(CsvService.parseLine('invalid'), isNull);
+      expect(CsvService.parseLine('15/03/2025;Food;Groceries', accountId: 1), isNull);
+      expect(CsvService.parseLine('15/03/2025;Food', accountId: 1), isNull);
+      expect(CsvService.parseLine('invalid', accountId: 1), isNull);
     });
 
     test('returns null for invalid date format', () {
-      expect(CsvService.parseLine('2025-03-15;Food;Groceries;-50.00'), isNull);
-      expect(CsvService.parseLine('15-03-2025;Food;Groceries;-50.00'), isNull);
-      expect(CsvService.parseLine('invalid;Food;Groceries;-50.00'), isNull);
+      expect(CsvService.parseLine('2025-03-15;Food;Groceries;-50.00', accountId: 1), isNull);
+      expect(CsvService.parseLine('15-03-2025;Food;Groceries;-50.00', accountId: 1), isNull);
+      expect(CsvService.parseLine('invalid;Food;Groceries;-50.00', accountId: 1), isNull);
     });
 
     test('returns null for invalid amount', () {
-      expect(CsvService.parseLine('15/03/2025;Food;Groceries;abc'), isNull);
+      expect(CsvService.parseLine('15/03/2025;Food;Groceries;abc', accountId: 1), isNull);
     });
 
     test('trims whitespace from fields', () {
-      final transaction = CsvService.parseLine('15/03/2025; Food ; Groceries ; -50.00 ');
+      final transaction = CsvService.parseLine('15/03/2025; Food ; Groceries ; -50.00 ', accountId: 1);
 
       expect(transaction, isNotNull);
       expect(transaction!.category, 'Food');
@@ -229,6 +239,7 @@ another;bad''';
     test('export then import produces equivalent transactions', () {
       final original = [
         Transaction(
+          accountId: 1,
           date: DateTime(2025, 3, 15),
           category: 'Food',
           label: 'Groceries',
@@ -236,6 +247,7 @@ another;bad''';
           credit: 0.0,
         ),
         Transaction(
+          accountId: 1,
           date: DateTime(2025, 1, 25),
           category: 'Salary',
           label: 'Monthly salary',
@@ -245,12 +257,13 @@ another;bad''';
       ];
 
       final csv = CsvService.generateCsv(original);
-      final result = CsvService.parseCsv(csv);
+      final result = CsvService.parseCsv(csv, accountId: 1);
 
       expect(result.transactions.length, original.length);
       expect(result.skipped, 0);
 
       for (int i = 0; i < original.length; i++) {
+        expect(result.transactions[i].accountId, original[i].accountId);
         expect(result.transactions[i].date, original[i].date);
         expect(result.transactions[i].category, original[i].category);
         expect(result.transactions[i].label, original[i].label);

@@ -7,6 +7,7 @@ void main() {
       test('toMap and fromMap roundtrip preserves all fields', () {
         final original = Balance(
           id: 1,
+          accountId: 1,
           amount: 1500.50,
           date: DateTime(2025, 1, 15),
           createdAt: DateTime(2025, 1, 15, 10, 30),
@@ -16,6 +17,7 @@ void main() {
         final restored = Balance.fromMap(map);
 
         expect(restored.id, original.id);
+        expect(restored.accountId, original.accountId);
         expect(restored.amount, original.amount);
         expect(restored.date, original.date);
         expect(restored.createdAt, original.createdAt);
@@ -23,6 +25,7 @@ void main() {
 
       test('toMap excludes id when null', () {
         final balance = Balance(
+          accountId: 1,
           amount: 1000.0,
           date: DateTime(2025, 1, 1),
         );
@@ -36,6 +39,7 @@ void main() {
       test('fromMap handles numeric amount correctly', () {
         final map = {
           'id': 1,
+          'account_id': 1,
           'amount': 1234,
           'date': '2025-01-15T00:00:00.000',
           'created_at': '2025-01-15T10:30:00.000',
@@ -51,6 +55,7 @@ void main() {
       test('creates modified copy with new amount', () {
         final original = Balance(
           id: 1,
+          accountId: 1,
           amount: 1500.0,
           date: DateTime(2025, 1, 15),
         );
@@ -58,6 +63,7 @@ void main() {
         final copy = original.copyWith(amount: 2000.0);
 
         expect(copy.id, original.id);
+        expect(copy.accountId, original.accountId);
         expect(copy.amount, 2000.0);
         expect(copy.date, original.date);
       });
@@ -65,6 +71,7 @@ void main() {
       test('creates modified copy with new date', () {
         final original = Balance(
           id: 1,
+          accountId: 1,
           amount: 1500.0,
           date: DateTime(2025, 1, 15),
         );
@@ -73,6 +80,7 @@ void main() {
         final copy = original.copyWith(date: newDate);
 
         expect(copy.id, original.id);
+        expect(copy.accountId, original.accountId);
         expect(copy.amount, original.amount);
         expect(copy.date, newDate);
       });
@@ -80,6 +88,7 @@ void main() {
       test('preserves all fields when no changes specified', () {
         final original = Balance(
           id: 1,
+          accountId: 1,
           amount: 1500.0,
           date: DateTime(2025, 1, 15),
           createdAt: DateTime(2025, 1, 15, 10, 30),
@@ -88,6 +97,7 @@ void main() {
         final copy = original.copyWith();
 
         expect(copy.id, original.id);
+        expect(copy.accountId, original.accountId);
         expect(copy.amount, original.amount);
         expect(copy.date, original.date);
         expect(copy.createdAt, original.createdAt);
@@ -98,6 +108,7 @@ void main() {
       test('sets createdAt to now when not provided', () {
         final before = DateTime.now();
         final balance = Balance(
+          accountId: 1,
           amount: 1000.0,
           date: DateTime(2025, 1, 1),
         );
@@ -109,6 +120,7 @@ void main() {
 
       test('handles negative amounts', () {
         final balance = Balance(
+          accountId: 1,
           amount: -500.0,
           date: DateTime(2025, 1, 1),
         );
@@ -118,11 +130,84 @@ void main() {
 
       test('handles zero amount', () {
         final balance = Balance(
+          accountId: 1,
           amount: 0.0,
           date: DateTime(2025, 1, 1),
         );
 
         expect(balance.amount, 0.0);
+      });
+    });
+
+    group('accountId', () {
+      test('toMap includes accountId', () {
+        final balance = Balance(
+          id: 1,
+          accountId: 2,
+          amount: 1000.0,
+          date: DateTime(2025, 1, 15),
+        );
+
+        final map = balance.toMap();
+
+        expect(map['account_id'], 2);
+      });
+
+      test('fromMap parses accountId correctly', () {
+        final map = {
+          'id': 1,
+          'account_id': 3,
+          'amount': 1500.0,
+          'date': '2025-01-15T00:00:00.000',
+          'created_at': '2025-01-15T10:30:00.000',
+        };
+
+        final balance = Balance.fromMap(map);
+
+        expect(balance.accountId, 3);
+      });
+
+      test('fromMap defaults accountId to 1 when missing', () {
+        final map = {
+          'id': 1,
+          'amount': 1500.0,
+          'date': '2025-01-15T00:00:00.000',
+          'created_at': '2025-01-15T10:30:00.000',
+        };
+
+        final balance = Balance.fromMap(map);
+
+        expect(balance.accountId, 1);
+      });
+
+      test('copyWith handles accountId', () {
+        final original = Balance(
+          id: 1,
+          accountId: 1,
+          amount: 1500.0,
+          date: DateTime(2025, 1, 15),
+        );
+
+        final copy = original.copyWith(accountId: 2);
+
+        expect(copy.id, original.id);
+        expect(copy.accountId, 2);
+        expect(copy.amount, original.amount);
+      });
+
+      test('toMap and fromMap roundtrip preserves accountId', () {
+        final original = Balance(
+          id: 1,
+          accountId: 5,
+          amount: 1500.50,
+          date: DateTime(2025, 1, 15),
+          createdAt: DateTime(2025, 1, 15, 10, 30),
+        );
+
+        final map = original.toMap();
+        final restored = Balance.fromMap(map);
+
+        expect(restored.accountId, original.accountId);
       });
     });
   });

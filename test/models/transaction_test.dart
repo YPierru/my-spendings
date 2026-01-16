@@ -59,6 +59,7 @@ void main() {
     test('toMap and fromMap roundtrip', () {
       final original = Transaction(
         id: 42,
+        accountId: 1,
         date: DateTime(2025, 3, 21),
         category: 'Food',
         label: 'Groceries',
@@ -70,6 +71,7 @@ void main() {
       final restored = Transaction.fromMap(map);
 
       expect(restored.id, original.id);
+      expect(restored.accountId, original.accountId);
       expect(restored.date, original.date);
       expect(restored.category, original.category);
       expect(restored.label, original.label);
@@ -79,6 +81,7 @@ void main() {
 
     test('fromMap handles null values', () {
       final map = {
+        'account_id': 1,
         'date': '2025-01-15T00:00:00.000',
         'category': 'Food',
         'label': null,
@@ -87,6 +90,7 @@ void main() {
       };
 
       final transaction = Transaction.fromMap(map);
+      expect(transaction.accountId, 1);
       expect(transaction.label, '');
       expect(transaction.debit, 0.0);
       expect(transaction.credit, 0.0);
@@ -96,6 +100,7 @@ void main() {
   group('Transaction properties', () {
     test('isExpense and isIncome', () {
       final expense = Transaction(
+        accountId: 1,
         date: DateTime(2025, 1, 15),
         category: 'Food',
         label: 'Groceries',
@@ -104,6 +109,7 @@ void main() {
       );
 
       final income = Transaction(
+        accountId: 1,
         date: DateTime(2025, 1, 15),
         category: 'Salary',
         label: 'Monthly salary',
@@ -123,6 +129,7 @@ void main() {
     test('copyWith creates modified copy', () {
       final original = Transaction(
         id: 1,
+        accountId: 1,
         date: DateTime(2025, 1, 15),
         category: 'Food',
         label: 'Groceries',
@@ -133,9 +140,94 @@ void main() {
       final copy = original.copyWith(category: 'Restaurant', debit: 75.0);
 
       expect(copy.id, original.id);
+      expect(copy.accountId, original.accountId);
       expect(copy.category, 'Restaurant');
       expect(copy.debit, 75.0);
       expect(copy.label, original.label);
+    });
+  });
+
+  group('Transaction accountId', () {
+    test('toMap includes accountId', () {
+      final transaction = Transaction(
+        id: 1,
+        accountId: 2,
+        date: DateTime(2025, 1, 15),
+        category: 'Food',
+        label: 'Groceries',
+        debit: 50.0,
+        credit: 0.0,
+      );
+
+      final map = transaction.toMap();
+
+      expect(map['account_id'], 2);
+    });
+
+    test('fromMap parses accountId correctly', () {
+      final map = {
+        'id': 1,
+        'account_id': 3,
+        'date': '2025-01-15T00:00:00.000',
+        'category': 'Food',
+        'label': 'Groceries',
+        'debit': 50.0,
+        'credit': 0.0,
+      };
+
+      final transaction = Transaction.fromMap(map);
+
+      expect(transaction.accountId, 3);
+    });
+
+    test('fromMap defaults accountId to 1 when missing', () {
+      final map = {
+        'id': 1,
+        'date': '2025-01-15T00:00:00.000',
+        'category': 'Food',
+        'label': 'Groceries',
+        'debit': 50.0,
+        'credit': 0.0,
+      };
+
+      final transaction = Transaction.fromMap(map);
+
+      expect(transaction.accountId, 1);
+    });
+
+    test('copyWith handles accountId', () {
+      final original = Transaction(
+        id: 1,
+        accountId: 1,
+        date: DateTime(2025, 1, 15),
+        category: 'Food',
+        label: 'Groceries',
+        debit: 50.0,
+        credit: 0.0,
+      );
+
+      final copy = original.copyWith(accountId: 2);
+
+      expect(copy.id, original.id);
+      expect(copy.accountId, 2);
+      expect(copy.category, original.category);
+    });
+
+    test('toMap and fromMap roundtrip preserves accountId', () {
+      final original = Transaction(
+        id: 42,
+        accountId: 5,
+        date: DateTime(2025, 3, 21),
+        category: 'Food',
+        label: 'Groceries',
+        debit: 50.0,
+        credit: 0.0,
+      );
+
+      final map = original.toMap();
+      final restored = Transaction.fromMap(map);
+
+      expect(restored.accountId, original.accountId);
     });
   });
 }

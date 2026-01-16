@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart' hide Transaction;
 import 'package:path/path.dart';
+import '../models/account.dart';
 import '../models/balance.dart';
 import '../models/transaction.dart';
 
@@ -23,31 +24,57 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
     );
   }
 
   Future<void> _onCreate(Database db, int version) async {
+    // Create accounts table first
+    await db.execute('''
+      CREATE TABLE accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+    // Create transactions table with account_id foreign key
     await db.execute('''
       CREATE TABLE transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_id INTEGER NOT NULL DEFAULT 1,
         date TEXT NOT NULL,
         category TEXT NOT NULL,
         label TEXT,
         debit REAL DEFAULT 0,
-        credit REAL DEFAULT 0
+        credit REAL DEFAULT 0,
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
       )
     ''');
+
+    // Create balance table with account_id foreign key (unique per account)
     await db.execute('''
       CREATE TABLE balance (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_id INTEGER NOT NULL UNIQUE,
         amount REAL NOT NULL,
         date TEXT NOT NULL,
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
       )
     ''');
+
+    // Insert default "Main Account" for fresh installs
+    await db.execute('''
+      INSERT INTO accounts (id, name, created_at)
+      VALUES (1, 'Main Account', datetime('now'))
+    ''');
+
     await _seedInitialData(db);
   }
 
@@ -62,12 +89,55 @@ class DatabaseService {
         )
       ''');
     }
+
+    if (oldVersion < 3) {
+      // Create accounts table
+      await db.execute('''
+        CREATE TABLE accounts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )
+      ''');
+
+      // Insert default "Main Account" for existing data
+      await db.execute('''
+        INSERT INTO accounts (id, name, created_at)
+        VALUES (1, 'Main Account', datetime('now'))
+      ''');
+
+      // Add account_id column to transactions (default 1 for existing records)
+      await db.execute('ALTER TABLE transactions ADD COLUMN account_id INTEGER NOT NULL DEFAULT 1');
+
+      // Recreate balance table with account_id and unique constraint
+      await db.execute('''
+        CREATE TABLE balance_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          account_id INTEGER NOT NULL UNIQUE DEFAULT 1,
+          amount REAL NOT NULL,
+          date TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+        )
+      ''');
+
+      // Copy existing balance data (if any) to new table
+      await db.execute('''
+        INSERT INTO balance_new (id, account_id, amount, date, created_at)
+        SELECT id, 1, amount, date, created_at FROM balance
+      ''');
+
+      // Drop old balance table and rename new one
+      await db.execute('DROP TABLE balance');
+      await db.execute('ALTER TABLE balance_new RENAME TO balance');
+    }
   }
 
   Future<void> _seedInitialData(Database db) async {
     final batch = db.batch();
     for (final t in _initialTransactions) {
       batch.insert('transactions', {
+        'account_id': 1,
         'date': t[0],
         'category': t[1],
         'label': t[2],
@@ -644,6 +714,159 @@ class DatabaseService {
     ['2025-12-31T00:00:00.000', 'Variable', 'café station service', 5.45, 0.0],
     ['2025-12-31T00:00:00.000', 'Variable', 'patagonia', 230.0, 0.0],
   ];
+
+  // ============ Account Methods ============
+
+  Future<int> insertAccount(Account account) async {
+    final db = await database;
+    return await db.insert('accounts', account.toMap());
+  }
+
+  Future<int> updateAccount(Account account) async {
+    final db = await database;
+    return await db.update(
+      'accounts',
+      account.toMap(),
+      where: 'id = ?',
+      whereArgs: [account.id],
+    );
+  }
+
+  Future<int> deleteAccount(int id) async {
+    final db = await database;
+    // CASCADE will automatically delete related transactions and balance
+    return await db.delete(
+      'accounts',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<List<Account>> getAllAccounts() async {
+    final db = await database;
+    final List<Map<String, Object?>> maps = await db.query(
+      'accounts',
+      orderBy: 'created_at ASC',
+    );
+    return List<Account>.from(maps.map((map) => Account.fromMap(map)));
+  }
+
+  Future<Account?> getAccountById(int id) async {
+    final db = await database;
+    final List<Map<String, Object?>> maps = await db.query(
+      'accounts',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return Account.fromMap(maps.first);
+  }
+
+  // ============ Account-Scoped Transaction Methods ============
+
+  Future<List<Transaction>> getTransactionsByAccount(int accountId) async {
+    final db = await database;
+    final List<Map<String, Object?>> maps = await db.query(
+      'transactions',
+      where: 'account_id = ?',
+      whereArgs: [accountId],
+      orderBy: 'date DESC',
+    );
+    return List<Transaction>.from(maps.map((map) => Transaction.fromMap(map)));
+  }
+
+  Future<List<String>> getCategoriesForAccount(int accountId) async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT DISTINCT category FROM transactions WHERE account_id = ? ORDER BY category',
+      [accountId],
+    );
+    return result.map((row) => row['category'] as String).toList();
+  }
+
+  Future<void> importFromCsvForAccount(List<Transaction> transactions, int accountId) async {
+    final db = await database;
+    final batch = db.batch();
+    for (final t in transactions) {
+      final map = t.toMap();
+      map['account_id'] = accountId;
+      batch.insert('transactions', map);
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<bool> isAccountEmpty(int accountId) async {
+    final db = await database;
+    final count = Sqflite.firstIntValue(
+      await db.rawQuery(
+        'SELECT COUNT(*) FROM transactions WHERE account_id = ?',
+        [accountId],
+      ),
+    );
+    return count == 0;
+  }
+
+  // ============ Account-Scoped Balance Methods ============
+
+  Future<Balance?> getBalanceForAccount(int accountId) async {
+    final db = await database;
+    final List<Map<String, Object?>> maps = await db.query(
+      'balance',
+      where: 'account_id = ?',
+      whereArgs: [accountId],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return Balance.fromMap(maps.first);
+  }
+
+  Future<int> setBalanceForAccount(Balance balance) async {
+    final db = await database;
+    // Delete existing balance for this account, then insert new one
+    await db.delete(
+      'balance',
+      where: 'account_id = ?',
+      whereArgs: [balance.accountId],
+    );
+    return await db.insert('balance', balance.toMap());
+  }
+
+  Future<int> deleteBalanceForAccount(int accountId) async {
+    final db = await database;
+    return await db.delete(
+      'balance',
+      where: 'account_id = ?',
+      whereArgs: [accountId],
+    );
+  }
+
+  Future<double> calculateCurrentBalanceForAccount(int accountId) async {
+    final balance = await getBalanceForAccount(accountId);
+    if (balance == null) return 0.0;
+
+    final db = await database;
+    final balanceDateStr = balance.date.toIso8601String();
+
+    final creditResult = await db.rawQuery('''
+      SELECT COALESCE(SUM(credit), 0) as total
+      FROM transactions
+      WHERE account_id = ? AND date >= ?
+    ''', [accountId, balanceDateStr]);
+
+    final debitResult = await db.rawQuery('''
+      SELECT COALESCE(SUM(debit), 0) as total
+      FROM transactions
+      WHERE account_id = ? AND date >= ?
+    ''', [accountId, balanceDateStr]);
+
+    final totalCredits = (creditResult.first['total'] as num).toDouble();
+    final totalDebits = (debitResult.first['total'] as num).toDouble();
+
+    return balance.amount + totalCredits - totalDebits;
+  }
+
+  // ============ Original Transaction Methods (kept for compatibility) ============
 
   Future<int> insertTransaction(Transaction transaction) async {
     final db = await database;

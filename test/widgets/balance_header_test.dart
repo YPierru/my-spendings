@@ -23,6 +23,7 @@ void main() {
 
     testWidgets('shows positive balance with correct styling', (tester) async {
       final balance = Balance(
+        accountId: 1,
         amount: 1000.0,
         date: DateTime(2025, 1, 15),
       );
@@ -45,6 +46,7 @@ void main() {
 
     testWidgets('shows negative balance with correct styling', (tester) async {
       final balance = Balance(
+        accountId: 1,
         amount: 1000.0,
         date: DateTime(2025, 1, 15),
       );
@@ -65,6 +67,7 @@ void main() {
 
     testWidgets('shows zero balance correctly', (tester) async {
       final balance = Balance(
+        accountId: 1,
         amount: 0.0,
         date: DateTime(2025, 1, 15),
       );

@@ -5,12 +5,14 @@ class TransactionForm extends StatefulWidget {
   final Transaction? transaction;
   final List<String> categories;
   final String? initialCategory;
+  final int accountId;
 
   const TransactionForm({
     super.key,
     this.transaction,
     required this.categories,
     this.initialCategory,
+    required this.accountId,
   });
 
   @override
@@ -86,6 +88,7 @@ class _TransactionFormState extends State<TransactionForm> {
 
       final transaction = Transaction(
         id: widget.transaction?.id,
+        accountId: widget.accountId,
         date: _date,
         category: category,
         label: _label,

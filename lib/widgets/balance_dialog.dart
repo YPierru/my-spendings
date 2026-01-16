@@ -3,8 +3,9 @@ import '../models/balance.dart';
 
 class BalanceDialog extends StatefulWidget {
   final Balance? existingBalance;
+  final int accountId;
 
-  const BalanceDialog({super.key, this.existingBalance});
+  const BalanceDialog({super.key, this.existingBalance, required this.accountId});
 
   @override
   State<BalanceDialog> createState() => _BalanceDialogState();
@@ -49,6 +50,7 @@ class _BalanceDialogState extends State<BalanceDialog> {
     if (_formKey.currentState!.validate()) {
       final amount = double.parse(_amountController.text.replaceAll(',', '.'));
       final balance = Balance(
+        accountId: widget.accountId,
         amount: amount,
         date: _selectedDate,
       );

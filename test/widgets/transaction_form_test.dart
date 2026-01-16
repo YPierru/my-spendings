@@ -11,7 +11,7 @@ void main() {
   group('TransactionForm', () {
     testWidgets('renders all form fields in add mode', (tester) async {
       await tester.pumpWidget(makeTestableWidget(
-        const TransactionForm(categories: ['Food', 'Transport']),
+        const TransactionForm(categories: ['Food', 'Transport'], accountId: 1),
       ));
       await tester.pumpAndSettle();
 
@@ -27,6 +27,7 @@ void main() {
     testWidgets('pre-fills data in edit mode', (tester) async {
       final transaction = Transaction(
         id: 1,
+        accountId: 1,
         date: DateTime(2025, 1, 15),
         category: 'Food',
         label: 'Groceries',
@@ -35,7 +36,7 @@ void main() {
       );
 
       await tester.pumpWidget(makeTestableWidget(
-        TransactionForm(transaction: transaction, categories: const ['Food', 'Transport']),
+        TransactionForm(transaction: transaction, categories: const ['Food', 'Transport'], accountId: 1),
       ));
       await tester.pumpAndSettle();
 
@@ -47,7 +48,7 @@ void main() {
 
     testWidgets('validates required fields', (tester) async {
       await tester.pumpWidget(makeTestableWidget(
-        const TransactionForm(categories: ['Food']),
+        const TransactionForm(categories: ['Food'], accountId: 1),
       ));
       await tester.pumpAndSettle();
 
@@ -66,7 +67,7 @@ void main() {
 
     testWidgets('can toggle between expense and income', (tester) async {
       await tester.pumpWidget(makeTestableWidget(
-        const TransactionForm(categories: ['Food']),
+        const TransactionForm(categories: ['Food'], accountId: 1),
       ));
       await tester.pumpAndSettle();
 
@@ -79,7 +80,7 @@ void main() {
 
     testWidgets('can create new category', (tester) async {
       await tester.pumpWidget(makeTestableWidget(
-        const TransactionForm(categories: ['Food']),
+        const TransactionForm(categories: ['Food'], accountId: 1),
       ));
       await tester.pumpAndSettle();
 

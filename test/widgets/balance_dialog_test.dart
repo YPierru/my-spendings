@@ -9,7 +9,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: BalanceDialog(),
+            body: BalanceDialog(accountId: 1),
           ),
         ),
       );
@@ -23,6 +23,7 @@ void main() {
 
     testWidgets('renders with existing balance (edit mode)', (tester) async {
       final existingBalance = Balance(
+        accountId: 1,
         amount: 1500.0,
         date: DateTime(2025, 3, 15),
       );
@@ -30,7 +31,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: BalanceDialog(existingBalance: existingBalance),
+            body: BalanceDialog(existingBalance: existingBalance, accountId: 1),
           ),
         ),
       );
@@ -44,7 +45,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: BalanceDialog(),
+            body: BalanceDialog(accountId: 1),
           ),
         ),
       );
@@ -59,7 +60,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: BalanceDialog(),
+            body: BalanceDialog(accountId: 1),
           ),
         ),
       );
@@ -75,7 +76,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: BalanceDialog(),
+            body: BalanceDialog(accountId: 1),
           ),
         ),
       );
@@ -92,7 +93,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: BalanceDialog(),
+            body: BalanceDialog(accountId: 1),
           ),
         ),
       );
@@ -114,7 +115,7 @@ void main() {
               onPressed: () async {
                 result = await showDialog<Balance>(
                   context: context,
-                  builder: (_) => const BalanceDialog(),
+                  builder: (_) => const BalanceDialog(accountId: 1),
                 );
               },
               child: const Text('Open'),
@@ -136,7 +137,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: BalanceDialog(),
+            body: BalanceDialog(accountId: 1),
           ),
         ),
       );
@@ -151,7 +152,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: BalanceDialog(),
+            body: BalanceDialog(accountId: 1),
           ),
         ),
       );
