@@ -3,14 +3,37 @@ import 'package:path/path.dart';
 import '../models/account.dart';
 import '../models/balance.dart';
 import '../models/transaction.dart';
+import 'demo_data_generator.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
   static Database? _database;
+  static bool _isDemoMode = false;
 
   DatabaseService._internal();
 
   factory DatabaseService() => _instance;
+
+  /// Returns whether demo mode is currently active
+  bool get isDemoMode => _isDemoMode;
+
+  /// Switches between demo mode and real mode
+  /// Returns true when the switch is complete
+  Future<bool> switchToDemoMode(bool enabled) async {
+    if (_isDemoMode == enabled) return true;
+
+    // Close current database connection
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+    }
+
+    _isDemoMode = enabled;
+
+    // Open the appropriate database (will trigger seeding if needed)
+    await database;
+    return true;
+  }
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -20,7 +43,8 @@ class DatabaseService {
 
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'transactions.db');
+    final dbName = _isDemoMode ? 'transactions_demo.db' : 'transactions.db';
+    final path = join(dbPath, dbName);
 
     return await openDatabase(
       path,
@@ -69,13 +93,44 @@ class DatabaseService {
       )
     ''');
 
-    // Insert default "Main Account" for fresh installs
-    await db.execute('''
-      INSERT INTO accounts (id, name, created_at)
-      VALUES (1, 'Main Account', datetime('now'))
-    ''');
+    if (_isDemoMode) {
+      // Seed demo data
+      await _seedDemoData(db);
+    } else {
+      // Insert default "Main Account" for fresh installs
+      await db.execute('''
+        INSERT INTO accounts (id, name, created_at)
+        VALUES (1, 'Main Account', datetime('now'))
+      ''');
 
-    await _seedInitialData(db);
+      await _seedInitialData(db);
+    }
+  }
+
+  Future<void> _seedDemoData(Database db) async {
+    // Insert demo accounts
+    final demoAccounts = DemoDataGenerator.generateDemoAccounts();
+    final accountIds = <int>[];
+
+    for (final account in demoAccounts) {
+      final id = await db.insert('accounts', account.toMap());
+      accountIds.add(id);
+    }
+
+    // Generate and insert transactions for each account
+    final batch = db.batch();
+    for (final accountId in accountIds) {
+      final transactions =
+          DemoDataGenerator.generateTransactionsForAccount(accountId);
+      for (final t in transactions) {
+        batch.insert('transactions', t.toMap());
+      }
+
+      // Generate and insert balance for each account
+      final balance = DemoDataGenerator.generateBalanceForAccount(accountId);
+      batch.insert('balance', balance.toMap());
+    }
+    await batch.commit(noResult: true);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {

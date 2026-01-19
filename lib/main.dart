@@ -117,10 +117,12 @@ class _AccountManagerState extends State<AccountManager> {
   final DatabaseService _db = DatabaseService();
   List<AccountWithBalance> _accounts = [];
   bool _isLoading = true;
+  bool _isDemoMode = false;
 
   @override
   void initState() {
     super.initState();
+    _isDemoMode = _db.isDemoMode;
     _loadAccounts();
   }
 
@@ -164,6 +166,18 @@ class _AccountManagerState extends State<AccountManager> {
     }
   }
 
+  Future<void> _editAccount(Account account) async {
+    final result = await showDialog<Account>(
+      context: context,
+      builder: (context) => AccountFormDialog(existingAccount: account),
+    );
+
+    if (result != null) {
+      await _db.updateAccount(result);
+      await _loadAccounts();
+    }
+  }
+
   Future<void> _deleteAccount(int id) async {
     final account = _accounts.firstWhere((a) => a.account.id == id);
 
@@ -187,6 +201,30 @@ class _AccountManagerState extends State<AccountManager> {
     ).then((_) => _loadAccounts());
   }
 
+  Future<void> _toggleDemoMode() async {
+    setState(() => _isLoading = true);
+    try {
+      final newMode = !_isDemoMode;
+      await _db.switchToDemoMode(newMode);
+      setState(() => _isDemoMode = newMode);
+      await _loadAccounts();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newMode ? 'Demo mode enabled' : 'Switched to real data'),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error switching mode: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -198,8 +236,11 @@ class _AccountManagerState extends State<AccountManager> {
     return AccountListScreen(
       accounts: _accounts,
       onAddAccount: _addAccount,
+      onEditAccount: _editAccount,
       onDeleteAccount: _deleteAccount,
       onSelectAccount: _selectAccount,
+      isDemoMode: _isDemoMode,
+      onToggleDemoMode: _toggleDemoMode,
     );
   }
 }
@@ -285,30 +326,67 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
     await _loadData();
   }
 
+  void _showLoadingDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          content: Row(
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(width: 20),
+              Expanded(child: Text(message)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _hideLoadingDialog() {
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   Future<void> _importFromCsv() async {
     final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
+      type: FileType.any,
     );
 
     if (result == null || result.files.isEmpty) return;
 
-    final file = File(result.files.single.path!);
-    final content = await file.readAsString();
-    final parseResult = CsvService.parseCsv(content, accountId: _accountId);
+    _showLoadingDialog('Importing CSV...');
 
-    for (final transaction in parseResult.transactions) {
-      await _db.insertTransaction(transaction);
-    }
+    try {
+      final file = File(result.files.single.path!);
+      final content = await file.readAsString();
+      final parseResult = CsvService.parseCsv(content, accountId: _accountId);
 
-    await _loadData();
+      for (final transaction in parseResult.transactions) {
+        await _db.insertTransaction(transaction);
+      }
 
-    if (mounted) {
-      final imported = parseResult.transactions.length;
-      final skipped = parseResult.skipped;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Imported $imported transactions${skipped > 0 ? ' ($skipped skipped)' : ''}')),
-      );
+      await _loadData();
+
+      _hideLoadingDialog();
+
+      if (mounted) {
+        final imported = parseResult.transactions.length;
+        final skipped = parseResult.skipped;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Imported $imported transactions${skipped > 0 ? ' ($skipped skipped)' : ''}')),
+        );
+      }
+    } catch (e) {
+      _hideLoadingDialog();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Import failed: $e')),
+        );
+      }
     }
   }
 
@@ -320,16 +398,29 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
       return;
     }
 
-    final csvContent = CsvService.generateCsv(_transactions!);
+    _showLoadingDialog('Exporting CSV...');
 
-    final directory = await getTemporaryDirectory();
-    final file = File('${directory.path}/spendings_export.csv');
-    await file.writeAsString(csvContent);
+    try {
+      final csvContent = CsvService.generateCsv(_transactions!);
 
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      subject: 'Spendings Export',
-    );
+      final directory = await getTemporaryDirectory();
+      final file = File('${directory.path}/spendings_export.csv');
+      await file.writeAsString(csvContent);
+
+      _hideLoadingDialog();
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: 'Spendings Export',
+      );
+    } catch (e) {
+      _hideLoadingDialog();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
+    }
   }
 
   void _openTransactionForm({Transaction? transaction, String? category}) async {

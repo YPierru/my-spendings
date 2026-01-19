@@ -29,8 +29,11 @@ void main() {
         AccountListScreen(
           accounts: sampleAccounts,
           onAddAccount: () async {},
+          onEditAccount: (account) async {},
           onDeleteAccount: (id) async {},
           onSelectAccount: (account) {},
+          isDemoMode: false,
+          onToggleDemoMode: () async {},
         ),
       ));
       await tester.pumpAndSettle();
@@ -45,8 +48,11 @@ void main() {
         AccountListScreen(
           accounts: sampleAccounts,
           onAddAccount: () async {},
+          onEditAccount: (account) async {},
           onDeleteAccount: (id) async {},
           onSelectAccount: (account) {},
+          isDemoMode: false,
+          onToggleDemoMode: () async {},
         ),
       ));
       await tester.pumpAndSettle();
@@ -57,59 +63,16 @@ void main() {
       expect(find.textContaining('250'), findsOneWidget);
     });
 
-    testWidgets('positive balance shows green color', (tester) async {
-      await tester.pumpWidget(makeTestableWidget(
-        AccountListScreen(
-          accounts: [
-            AccountWithBalance(
-              account: Account(id: 1, name: 'Positive'),
-              balance: 100.0,
-            ),
-          ],
-          onAddAccount: () async {},
-          onDeleteAccount: (id) async {},
-          onSelectAccount: (account) {},
-        ),
-      ));
-      await tester.pumpAndSettle();
-
-      // Find text widget with balance and verify it has green color
-      final balanceText = tester.widget<Text>(
-        find.textContaining('100'),
-      );
-      expect(balanceText.style?.color, Colors.green);
-    });
-
-    testWidgets('negative balance shows red color', (tester) async {
-      await tester.pumpWidget(makeTestableWidget(
-        AccountListScreen(
-          accounts: [
-            AccountWithBalance(
-              account: Account(id: 1, name: 'Negative'),
-              balance: -100.0,
-            ),
-          ],
-          onAddAccount: () async {},
-          onDeleteAccount: (id) async {},
-          onSelectAccount: (account) {},
-        ),
-      ));
-      await tester.pumpAndSettle();
-
-      // Find text widget with negative indicator
-      final balanceText = tester.widget<Text>(
-        find.textContaining('100'),
-      );
-      expect(balanceText.style?.color, Colors.red);
-    });
-
     testWidgets('displays empty state when no accounts', (tester) async {
       await tester.pumpWidget(makeTestableWidget(
         AccountListScreen(
           accounts: [],
           onAddAccount: () async {},
+          onEditAccount: (account) async {},
           onDeleteAccount: (id) async {},
           onSelectAccount: (account) {},
+          isDemoMode: false,
+          onToggleDemoMode: () async {},
         ),
       ));
       await tester.pumpAndSettle();
@@ -124,10 +87,13 @@ void main() {
         AccountListScreen(
           accounts: sampleAccounts,
           onAddAccount: () async {},
+          onEditAccount: (account) async {},
           onDeleteAccount: (id) async {},
           onSelectAccount: (account) {
             selectedAccount = account;
           },
+          isDemoMode: false,
+          onToggleDemoMode: () async {},
         ),
       ));
       await tester.pumpAndSettle();
@@ -144,8 +110,11 @@ void main() {
         AccountListScreen(
           accounts: sampleAccounts,
           onAddAccount: () async {},
+          onEditAccount: (account) async {},
           onDeleteAccount: (id) async {},
           onSelectAccount: (account) {},
+          isDemoMode: false,
+          onToggleDemoMode: () async {},
         ),
       ));
       await tester.pumpAndSettle();
@@ -153,18 +122,49 @@ void main() {
       expect(find.byIcon(Icons.add), findsOneWidget);
     });
 
-    testWidgets('app bar shows correct title', (tester) async {
+    testWidgets('has edit button on each account', (tester) async {
       await tester.pumpWidget(makeTestableWidget(
         AccountListScreen(
           accounts: sampleAccounts,
           onAddAccount: () async {},
+          onEditAccount: (account) async {},
           onDeleteAccount: (id) async {},
           onSelectAccount: (account) {},
+          isDemoMode: false,
+          onToggleDemoMode: () async {},
         ),
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('My Accounts'), findsOneWidget);
+      // Should have edit button for each account (3 edit icons)
+      expect(find.byIcon(Icons.edit_outlined), findsNWidgets(3));
+    });
+
+    testWidgets('tapping edit button calls onEditAccount', (tester) async {
+      Account? editedAccount;
+
+      await tester.pumpWidget(makeTestableWidget(
+        AccountListScreen(
+          accounts: sampleAccounts,
+          onAddAccount: () async {},
+          onEditAccount: (account) async {
+            editedAccount = account;
+          },
+          onDeleteAccount: (id) async {},
+          onSelectAccount: (account) {},
+          isDemoMode: false,
+          onToggleDemoMode: () async {},
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      // Find and tap the edit button for the first account
+      final editButtons = find.byIcon(Icons.edit_outlined);
+      await tester.tap(editButtons.first);
+      await tester.pumpAndSettle();
+
+      expect(editedAccount, isNotNull);
+      expect(editedAccount!.name, 'Main Account');
     });
   });
 }

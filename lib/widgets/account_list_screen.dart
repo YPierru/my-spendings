@@ -11,15 +11,21 @@ class AccountWithBalance {
 class AccountListScreen extends StatelessWidget {
   final List<AccountWithBalance> accounts;
   final Future<void> Function() onAddAccount;
+  final Future<void> Function(Account account) onEditAccount;
   final Future<void> Function(int id) onDeleteAccount;
   final void Function(Account account) onSelectAccount;
+  final bool isDemoMode;
+  final Future<void> Function() onToggleDemoMode;
 
   const AccountListScreen({
     super.key,
     required this.accounts,
     required this.onAddAccount,
+    required this.onEditAccount,
     required this.onDeleteAccount,
     required this.onSelectAccount,
+    required this.isDemoMode,
+    required this.onToggleDemoMode,
   });
 
   String _formatBalance(double balance) {
@@ -31,7 +37,45 @@ class AccountListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Accounts'),
+        title: Row(
+          children: [
+            const Text('My Accounts'),
+            if (isDemoMode) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.orange,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'DEMO',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'toggle_demo') {
+                onToggleDemoMode();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'toggle_demo',
+                child: Text(isDemoMode ? 'Exit Demo Mode' : 'Demo Mode'),
+              ),
+            ],
+          ),
+        ],
       ),
       body: accounts.isEmpty
           ? const Center(
@@ -89,9 +133,18 @@ class AccountListScreen extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () => _showDeleteConfirmation(context, item.account),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          onPressed: () => onEditAccount(item.account),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () => _showDeleteConfirmation(context, item.account),
+                        ),
+                      ],
                     ),
                     onTap: () => onSelectAccount(item.account),
                   ),
