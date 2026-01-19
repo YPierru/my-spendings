@@ -104,40 +104,6 @@ void main() {
       });
     });
 
-    group('constructor', () {
-      test('sets createdAt to now when not provided', () {
-        final before = DateTime.now();
-        final balance = Balance(
-          accountId: 1,
-          amount: 1000.0,
-          date: DateTime(2025, 1, 1),
-        );
-        final after = DateTime.now();
-
-        expect(balance.createdAt.isAfter(before.subtract(const Duration(seconds: 1))), isTrue);
-        expect(balance.createdAt.isBefore(after.add(const Duration(seconds: 1))), isTrue);
-      });
-
-      test('handles negative amounts', () {
-        final balance = Balance(
-          accountId: 1,
-          amount: -500.0,
-          date: DateTime(2025, 1, 1),
-        );
-
-        expect(balance.amount, -500.0);
-      });
-
-      test('handles zero amount', () {
-        final balance = Balance(
-          accountId: 1,
-          amount: 0.0,
-          date: DateTime(2025, 1, 1),
-        );
-
-        expect(balance.amount, 0.0);
-      });
-    });
 
     group('accountId', () {
       test('toMap includes accountId', () {

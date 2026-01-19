@@ -104,49 +104,63 @@ class AccountListScreen extends StatelessWidget {
                 final isPositive = item.balance >= 0;
 
                 return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    leading: CircleAvatar(
-                      backgroundColor: isPositive
-                          ? Colors.green.shade100
-                          : Colors.red.shade100,
-                      child: Icon(
-                        Icons.account_balance_wallet,
-                        color: isPositive ? Colors.green : Colors.red,
-                      ),
-                    ),
-                    title: Text(
-                      item.account.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                    subtitle: Text(
-                      _formatBalance(item.balance),
-                      style: TextStyle(
-                        color: isPositive ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          onPressed: () => onEditAccount(item.account),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () => _showDeleteConfirmation(context, item.account),
-                        ),
-                      ],
-                    ),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  elevation: 3,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
                     onTap: () => onSelectAccount(item.account),
+                    onLongPress: () => _showAccountOptions(context, item.account),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: isPositive
+                                  ? Colors.green.shade50
+                                  : Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              Icons.account_balance_wallet,
+                              color: isPositive ? Colors.green.shade700 : Colors.red.shade700,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.account.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _formatBalance(item.balance),
+                                  style: TextStyle(
+                                    color: isPositive ? Colors.green.shade700 : Colors.red.shade700,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 22,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            color: Colors.grey.shade400,
+                            size: 28,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 );
               },
@@ -154,6 +168,61 @@ class AccountListScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: onAddAccount,
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  void _showAccountOptions(BuildContext context, Account account) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  account.name,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Rename'),
+                onTap: () {
+                  Navigator.pop(context);
+                  onEditAccount(account);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.delete_outline, color: Colors.red.shade700),
+                title: Text('Delete', style: TextStyle(color: Colors.red.shade700)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showDeleteConfirmation(context, account);
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

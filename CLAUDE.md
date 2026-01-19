@@ -6,6 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is "Spendings" - a Flutter mobile app for personal finance tracking. It persists transaction data to SQLite and displays spending/income with filtering and search capabilities.
 
+### App Branding
+- **App Name**: "Spendings" (configured in `AndroidManifest.xml` and iOS `Info.plist`)
+- **App Icon**: Financial-themed icon featuring a wallet with bar chart on a blue background with gold coin accent
+- **Icon Generation**: Uses `flutter_launcher_icons` package. Run `flutter pub run flutter_launcher_icons` to regenerate icons from `assets/icon/app_icon.png`
+
 ## Common Commands
 
 ```bash
@@ -89,6 +94,20 @@ The app supports optional balance tracking with the following features:
   - "Set Balance..." - Opens dialog to set/modify the balance (always shown with same label regardless of whether balance exists)
 
 ### UI/UX Flow
+
+#### Account Management
+- **Account List Screen**:
+  - Displays accounts as large, prominent cards with enhanced visual hierarchy
+  - Account name shown in 18px bold font
+  - Balance displayed in 22px bold font with color-coding (green for positive, red for negative)
+  - Chevron icon (→) indicates cards are tappable
+  - **Tap**: Opens the account to view transactions
+  - **Long Press**: Shows bottom sheet with account options:
+    - "Rename" - Opens dialog to rename the account
+    - "Delete" - Deletes the account (with confirmation)
+  - Edit/delete buttons removed from card face for cleaner UI
+
+#### Transaction Management
 - Transactions are always displayed grouped by category (no toggle between detail and grouped views)
 - Categories within each month are sorted alphabetically
 - Tapping a category card opens a bottom sheet showing all transactions for that category in that month
@@ -101,7 +120,15 @@ The app supports optional balance tracking with the following features:
 
 ### Widget Structure
 - `SpendingDashboard` (stateful) - Root widget managing data loading, global filters, and balance state
-- `AccountListScreen` (stateless) - Displays list of accounts with their balances. Shows "DEMO" badge in AppBar when demo mode is active. Provides menu toggle for switching between demo and real mode
+- `AccountListScreen` (stateless) - Displays list of accounts with enhanced card design:
+  - Large, prominent account cards with account name (18px bold) and balance (22px bold)
+  - Balance color-coded (green for positive, red for negative)
+  - Chevron icon indicates tappable cards
+  - Long-press gesture shows bottom sheet with "Rename" and "Delete" options
+  - Shows "DEMO" badge in AppBar when demo mode is active
+  - Provides menu toggle for switching between demo and real mode
+- `AccountFormDialog` (stateful) - Dialog for creating or renaming accounts
+- `DeleteAccountDialog` (stateless) - Confirmation dialog for account deletion
 - `BalanceHeader` (stateless) - Displays current balance below AppBar when balance is set. Shows balance amount (color-coded). Hidden when no balance exists. Not clickable
 - `BalanceDialog` (stateful) - Dialog for setting/editing balance with amount input and date picker. Validates numeric input and supports comma/dot decimal separators
 - `TransactionListView` (stateful) - Displays grouped transactions by month and category with search and expense/income filtering. Accepts `onEdit`, `onDelete`, and `onAdd` callbacks for transaction management

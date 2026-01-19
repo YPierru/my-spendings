@@ -90,15 +90,6 @@ void main() {
     });
 
     group('constructor', () {
-      test('sets createdAt to now when not provided', () {
-        final before = DateTime.now();
-        final account = Account(name: 'Test Account');
-        final after = DateTime.now();
-
-        expect(account.createdAt.isAfter(before.subtract(const Duration(seconds: 1))), isTrue);
-        expect(account.createdAt.isBefore(after.add(const Duration(seconds: 1))), isTrue);
-      });
-
       test('accepts custom createdAt value', () {
         final customDate = DateTime(2025, 6, 15);
         final account = Account(

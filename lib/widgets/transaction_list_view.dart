@@ -121,6 +121,15 @@ class _TransactionListViewState extends State<TransactionListView> {
     return '${_monthNames[month - 1]} $year';
   }
 
+  String _formatLastTransactionDate() {
+    if (widget.transactions.isEmpty) return '-';
+    final lastTransaction = widget.transactions.reduce(
+      (a, b) => a.date.isAfter(b.date) ? a : b,
+    );
+    final d = lastTransaction.date;
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+  }
+
   List<Transaction> _getTransactionsForCategoryAndMonth(String category, String monthKey) {
     final parts = monthKey.split('-');
     final year = int.parse(parts[0]);
@@ -331,7 +340,18 @@ class _TransactionListViewState extends State<TransactionListView> {
             ],
           ),
         ),
-        const SizedBox(height: 4),
+        if (widget.transactions.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Text(
+              'Last transaction date: ${_formatLastTransactionDate()}',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade600,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
         Expanded(
           child: _filteredList.isEmpty
               ? const Center(child: Text('No transactions found'))

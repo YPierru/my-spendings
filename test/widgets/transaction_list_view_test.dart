@@ -153,5 +153,58 @@ void main() {
       expect(find.text('Cancel'), findsOneWidget);
       expect(find.text('Delete'), findsOneWidget);
     });
+
+    group('Last transaction date display', () {
+      testWidgets('displays last transaction date when transactions exist', (tester) async {
+        await tester.pumpWidget(makeTestableWidget(
+          TransactionListView(transactions: sampleTransactions),
+        ));
+        await tester.pumpAndSettle();
+
+        // Should display the most recent transaction date (25/01/2025)
+        expect(find.text('Last transaction date: 25/01/2025'), findsOneWidget);
+      });
+
+      testWidgets('does not display last transaction date when list is empty', (tester) async {
+        await tester.pumpWidget(makeTestableWidget(
+          TransactionListView(transactions: <Transaction>[]),
+        ));
+        await tester.pumpAndSettle();
+
+        // Should not show the last transaction date text when no transactions
+        expect(find.textContaining('Last transaction date:'), findsNothing);
+      });
+
+      testWidgets('displays correct date with multiple months', (tester) async {
+        final multiMonthTransactions = [
+          Transaction(
+            id: 1,
+            accountId: 1,
+            date: DateTime(2024, 12, 5),
+            category: 'Food',
+            label: 'Old groceries',
+            debit: 30.0,
+            credit: 0.0,
+          ),
+          Transaction(
+            id: 2,
+            accountId: 1,
+            date: DateTime(2025, 2, 10),
+            category: 'Transport',
+            label: 'Recent gas',
+            debit: 40.0,
+            credit: 0.0,
+          ),
+        ];
+
+        await tester.pumpWidget(makeTestableWidget(
+          TransactionListView(transactions: multiMonthTransactions),
+        ));
+        await tester.pumpAndSettle();
+
+        // Should display the most recent date (February 10, 2025)
+        expect(find.text('Last transaction date: 10/02/2025'), findsOneWidget);
+      });
+    });
   });
 }

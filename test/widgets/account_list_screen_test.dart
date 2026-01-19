@@ -122,7 +122,7 @@ void main() {
       expect(find.byIcon(Icons.add), findsOneWidget);
     });
 
-    testWidgets('has edit button on each account', (tester) async {
+    testWidgets('long press shows account options', (tester) async {
       await tester.pumpWidget(makeTestableWidget(
         AccountListScreen(
           accounts: sampleAccounts,
@@ -136,11 +136,16 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // Should have edit button for each account (3 edit icons)
-      expect(find.byIcon(Icons.edit_outlined), findsNWidgets(3));
+      // Long press on the first account
+      await tester.longPress(find.text('Main Account'));
+      await tester.pumpAndSettle();
+
+      // Should show bottom sheet with Rename and Delete options
+      expect(find.text('Rename'), findsOneWidget);
+      expect(find.text('Delete'), findsOneWidget);
     });
 
-    testWidgets('tapping edit button calls onEditAccount', (tester) async {
+    testWidgets('long press and rename calls onEditAccount', (tester) async {
       Account? editedAccount;
 
       await tester.pumpWidget(makeTestableWidget(
@@ -158,9 +163,12 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // Find and tap the edit button for the first account
-      final editButtons = find.byIcon(Icons.edit_outlined);
-      await tester.tap(editButtons.first);
+      // Long press on the first account to show options
+      await tester.longPress(find.text('Main Account'));
+      await tester.pumpAndSettle();
+
+      // Tap Rename option
+      await tester.tap(find.text('Rename'));
       await tester.pumpAndSettle();
 
       expect(editedAccount, isNotNull);
