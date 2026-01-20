@@ -851,6 +851,17 @@ class DatabaseService {
     await batch.commit(noResult: true);
   }
 
+  Future<void> insertTransactions(List<Transaction> transactions, int accountId) async {
+    final db = await database;
+    final batch = db.batch();
+    for (final t in transactions) {
+      final map = t.toMap();
+      map['account_id'] = accountId;
+      batch.insert('transactions', map);
+    }
+    await batch.commit(noResult: true);
+  }
+
   Future<bool> isAccountEmpty(int accountId) async {
     final db = await database;
     final count = Sqflite.firstIntValue(

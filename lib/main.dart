@@ -15,6 +15,7 @@ import 'widgets/balance_header.dart';
 import 'widgets/delete_account_dialog.dart';
 import 'widgets/transaction_list_view.dart';
 import 'widgets/transaction_form.dart';
+import 'widgets/multi_transaction_form.dart';
 
 void main() {
   runApp(const MyApp());
@@ -445,6 +446,24 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
     }
   }
 
+  void _openMultiTransactionForm({String? initialCategory}) async {
+    final result = await Navigator.push<List<Transaction>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MultiTransactionForm(
+          categories: _availableCategories,
+          accountId: _accountId,
+          initialCategory: initialCategory,
+        ),
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      await _db.insertTransactions(result, _accountId);
+      await _loadData();
+    }
+  }
+
   Future<void> _showBalanceDialog() async {
     final result = await showDialog<Balance>(
       context: context,
@@ -497,7 +516,7 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
       ),
       body: _buildBody(),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _openTransactionForm(),
+        onPressed: () => _openMultiTransactionForm(),
         child: const Icon(Icons.add),
       ),
     );
@@ -531,7 +550,7 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
               transactions: _filteredTransactions,
               onEdit: (transaction) => _openTransactionForm(transaction: transaction),
               onDelete: (id) => _deleteTransaction(id),
-              onAdd: (category) => _openTransactionForm(category: category),
+              onAdd: (category) => _openMultiTransactionForm(initialCategory: category),
             ),
           ),
         ),

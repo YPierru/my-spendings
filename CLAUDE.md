@@ -33,9 +33,9 @@ flutter test test/models/transaction_test.dart
 ## Architecture
 
 ### Data Flow
-1. **Database Service** (`lib/services/database_service.dart`) - SQLite persistence layer (singleton pattern). Seeds initial transaction data on first run; subsequent launches use cached database. Manages transactions, balance, and accounts tables. Supports demo mode with separate `transactions_demo.db` database
+1. **Database Service** (`lib/services/database_service.dart`) - SQLite persistence layer (singleton pattern). Seeds initial transaction data on first run; subsequent launches use cached database. Manages transactions, balance, and accounts tables. Supports demo mode with separate `transactions_demo.db` database. Provides `insertTransactions()` batch method for efficient multi-transaction insertion
 2. **Demo Data Generator** (`lib/services/demo_data_generator.dart`) - Generates realistic fake data for demonstration purposes. Creates demo accounts (Personal, Joint Account, Savings) with 50-80 randomized transactions each spanning 6 months. Includes expense categories (Groceries, Transport, Entertainment, etc.) and income categories (Salary, Freelance, Refund) with realistic labels and amount ranges
-3. **CSV Service** (`lib/services/csv_service.csv`) - Handles CSV import/export with format `Date;Category;Label;Amount`. Shows non-dismissible loading dialog during operations with error handling
+3. **CSV Service** (`lib/services/csv_service.dart`) - Handles CSV import/export with format `Date;Category;Label;Amount`. Shows non-dismissible loading dialog during operations with error handling
 4. **Transaction Model** (`lib/models/transaction.dart`) - Data class with `parseDate()` for French month names and `parseAmount()` for comma decimal separator. Supports `toMap()`/`fromMap()` for database serialization
 5. **Balance Model** (`lib/models/balance.dart`) - Data class storing initial balance amount and effective date. Supports `toMap()`/`fromMap()` for database serialization
 6. **Account Model** (`lib/models/account.dart`) - Data class for account information with support for renaming via AccountFormDialog
@@ -79,11 +79,11 @@ The app supports optional balance tracking with the following features:
   Current Balance = Initial Amount + Sum(Credits) - Sum(Debits)
   ```
   Only transactions on or after the balance's effective date are included in the calculation
-- **Database Methods**:
-  - `getBalance()` - Retrieves the stored balance (single row table)
-  - `setBalance(Balance)` - Saves or updates the balance (replaces existing)
-  - `deleteBalance()` - Removes balance tracking
-  - `calculateCurrentBalance()` - Computes current balance from initial amount and transactions
+- **Database Methods** (account-specific):
+  - `getBalanceForAccount(int accountId)` - Retrieves the stored balance for an account
+  - `setBalanceForAccount(Balance)` - Saves or updates the balance (replaces existing)
+  - `deleteBalanceForAccount(int accountId)` - Removes balance tracking for an account
+  - `calculateCurrentBalanceForAccount(int accountId)` - Computes current balance from initial amount and transactions
 - **Auto-update**: Balance recalculates automatically when transactions are added, edited, or deleted
 - **UI Integration**:
   - `BalanceHeader` widget displays below the AppBar when a balance is set
@@ -116,7 +116,26 @@ The app supports optional balance tracking with the following features:
   - Transaction label (or category name if no label exists)
   - Amount (color-coded: red for expenses, green for income)
   - Edit and delete action buttons
-- The floating action button (+) appears in the bottom sheet, allowing users to add new transactions to the selected category
+
+##### Adding Transactions
+- **Multi-Transaction Entry** (primary flow):
+  - The floating action button (+) opens `MultiTransactionForm` for batch entry
+  - Enables adding multiple transactions efficiently in one session
+  - Each entry has: date picker, expense/income toggle, category dropdown, label field, and amount field
+  - **Shared Defaults Section**: Optionally use the same date and/or category for all entries
+    - "Use same date for all" - When enabled, hides individual date pickers and uses shared date
+    - "Use same category for all" - When enabled, hides individual category dropdowns and uses shared category
+  - **Add Another** button adds new entry rows dynamically
+  - **Remove (X)** button deletes individual entries (cannot remove the last remaining entry)
+  - **Save All (N)** button displays count and saves all transactions via batch insert (`insertTransactions` method)
+  - When adding from a category context (bottom sheet), that category is pre-selected for convenience
+  - Form validation ensures all labels and amounts are provided before submission
+
+##### Editing Transactions
+- **Single Transaction Form** (editing only):
+  - Tapping edit button on an existing transaction opens `TransactionForm`
+  - Full-screen form with category selection or creation
+  - Used exclusively for editing; all new transaction entry uses `MultiTransactionForm`
 
 ### Widget Structure
 - `SpendingDashboard` (stateful) - Root widget managing data loading, global filters, and balance state
@@ -133,7 +152,15 @@ The app supports optional balance tracking with the following features:
 - `BalanceDialog` (stateful) - Dialog for setting/editing balance with amount input and date picker. Validates numeric input and supports comma/dot decimal separators
 - `TransactionListView` (stateful) - Displays grouped transactions by month and category with search and expense/income filtering. Accepts `onEdit`, `onDelete`, and `onAdd` callbacks for transaction management
 - `TransactionListSheet` (stateful) - Bottom sheet displaying transactions for a category with sorting options (date/amount, ascending/descending)
-- `TransactionForm` - Full-screen form for adding/editing transactions with category selection or creation
+- `MultiTransactionForm` (stateful) - Primary form for adding new transactions. Full-screen interface supporting batch entry of multiple transactions with:
+  - Individual entry cards with date picker, type toggle (expense/income), category dropdown, label, and amount fields
+  - Shared defaults section for applying common date/category across all entries
+  - "Add Another" button to dynamically add more entry rows
+  - Remove (X) buttons on each entry (disabled when only one entry remains)
+  - "Save All (N)" button showing entry count and triggering batch insert
+  - Accepts `initialCategory` for pre-selecting category when adding from category context
+  - Returns `List<Transaction>` when submitted successfully
+- `TransactionForm` (stateful) - Full-screen form for editing existing transactions. Supports category selection or creation. No longer used for adding new transactions (replaced by `MultiTransactionForm`)
 - Chart widgets (`category_pie_chart.dart`, `monthly_bar_chart.dart`, `category_analysis_chart.dart`) - Visualizations using fl_chart
 
 ## Testing
@@ -149,7 +176,6 @@ flutter test test/models/transaction_test.dart
 ```
 
 ### Test Coverage
-- **Transaction Model** (`test/models/transaction_test.dart`) - French date parsing, amount parsing, serialization, properties
-- **CSV Service** (`test/services/csv_service_test.dart`) - CSV generation, parsing, roundtrip export/import
-- **TransactionForm** (`test/widgets/transaction_form_test.dart`) - Form rendering, validation, expense/income toggle, category creation
-- **TransactionListView** (`test/widgets/transaction_list_view_test.dart`) - List rendering, filtering, search, bottom sheet, callbacks
+- **Models** (`test/models/`) - Transaction, Account, and Balance model tests including French date parsing, amount parsing, serialization
+- **Services** (`test/services/csv_service_test.dart`) - CSV generation, parsing, roundtrip export/import
+- **Widgets** (`test/widgets/`) - TransactionForm, TransactionListView, BalanceHeader, BalanceDialog, AccountFormDialog, AccountListScreen, DeleteAccountDialog
