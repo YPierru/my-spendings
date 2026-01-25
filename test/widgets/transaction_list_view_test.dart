@@ -154,6 +154,117 @@ void main() {
       expect(find.text('Delete'), findsOneWidget);
     });
 
+    group('View mode switching', () {
+      testWidgets('displays view mode chips', (tester) async {
+        await tester.pumpWidget(makeTestableWidget(
+          TransactionListView(transactions: sampleTransactions),
+        ));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Month'), findsOneWidget);
+        expect(find.text('Year'), findsOneWidget);
+        expect(find.text('List'), findsOneWidget);
+      });
+
+      testWidgets('switching to flat view shows transactions as list', (tester) async {
+        await tester.pumpWidget(makeTestableWidget(
+          TransactionListView(transactions: sampleTransactions),
+        ));
+        await tester.pumpAndSettle();
+
+        // Switch to flat list view
+        await tester.tap(find.text('List'));
+        await tester.pumpAndSettle();
+
+        // In flat view, each transaction shows its date
+        expect(find.text('25/01'), findsOneWidget); // Transport - Gas
+        expect(find.text('20/01'), findsOneWidget); // Salary
+        expect(find.text('15/01'), findsOneWidget); // Food - Groceries
+      });
+
+      testWidgets('switching to yearly view groups by year', (tester) async {
+        final multiYearTransactions = [
+          Transaction(
+            id: 1,
+            accountId: 1,
+            date: DateTime(2024, 6, 15),
+            category: 'Food',
+            label: 'Groceries 2024',
+            debit: 50.0,
+            credit: 0.0,
+          ),
+          Transaction(
+            id: 2,
+            accountId: 1,
+            date: DateTime(2025, 1, 20),
+            category: 'Food',
+            label: 'Groceries 2025',
+            debit: 60.0,
+            credit: 0.0,
+          ),
+        ];
+
+        await tester.pumpWidget(makeTestableWidget(
+          TransactionListView(transactions: multiYearTransactions),
+        ));
+        await tester.pumpAndSettle();
+
+        // Switch to yearly view
+        await tester.tap(find.text('Year'));
+        await tester.pumpAndSettle();
+
+        // Should show year headers
+        expect(find.text('2025'), findsOneWidget);
+        expect(find.text('2024'), findsOneWidget);
+        // Food category should appear twice (once per year)
+        expect(find.text('Food'), findsNWidgets(2));
+      });
+
+      testWidgets('flat view allows tapping transaction to show actions', (tester) async {
+        await tester.pumpWidget(makeTestableWidget(
+          TransactionListView(
+            transactions: sampleTransactions,
+            onEdit: (_) {},
+            onDelete: (_) {},
+          ),
+        ));
+        await tester.pumpAndSettle();
+
+        // Switch to flat list view
+        await tester.tap(find.text('List'));
+        await tester.pumpAndSettle();
+
+        // Tap on a transaction (Food row)
+        await tester.tap(find.text('Food').first);
+        await tester.pumpAndSettle();
+
+        // Should show bottom sheet with Edit and Delete buttons
+        expect(find.text('Edit'), findsOneWidget);
+        expect(find.text('Delete'), findsOneWidget);
+      });
+
+      testWidgets('view mode persists filter selections', (tester) async {
+        await tester.pumpWidget(makeTestableWidget(
+          TransactionListView(transactions: sampleTransactions),
+        ));
+        await tester.pumpAndSettle();
+
+        // Apply expenses filter
+        await tester.tap(find.text('Expenses'));
+        await tester.pumpAndSettle();
+
+        // Switch to flat view
+        await tester.tap(find.text('List'));
+        await tester.pumpAndSettle();
+
+        // Salary (income) should not be visible
+        expect(find.text('Salary'), findsNothing);
+        // Food and Transport (expenses) should be visible
+        expect(find.text('Food'), findsOneWidget);
+        expect(find.text('Transport'), findsOneWidget);
+      });
+    });
+
     group('Last transaction date display', () {
       testWidgets('displays last transaction date when transactions exist', (tester) async {
         await tester.pumpWidget(makeTestableWidget(

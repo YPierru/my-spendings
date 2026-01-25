@@ -40,7 +40,7 @@ flutter test test/models/transaction_test.dart
 5. **Balance Model** (`lib/models/balance.dart`) - Data class storing initial balance amount and effective date. Supports `toMap()`/`fromMap()` for database serialization
 6. **Account Model** (`lib/models/account.dart`) - Data class for account information with support for renaming via AccountFormDialog
 7. **Dashboard** (`lib/main.dart`) - Main widget that manages account selection and displays account list. Provides CSV import/export with loading indicators and balance management via menu. Handles demo mode toggling through AccountManager
-8. **List View** (`lib/widgets/transaction_list_view.dart`) - Displays transactions grouped by category within each month. Shows last transaction date below filter chips. Categories are sorted alphabetically (case-insensitive). Tapping a category opens a bottom sheet with all transactions for that category
+8. **List View** (`lib/widgets/transaction_list_view.dart`) - Displays transactions with three view modes: monthly grouped (default), yearly grouped, or flat list. Shows last transaction date below filter chips. Categories are sorted alphabetically (case-insensitive). Supports mode switching via FilterChips. Tapping a category opens a bottom sheet showing all transactions for that category in the selected time period. Flat view allows direct transaction interaction
 
 ### Key Implementation Details
 - Transactions can be either expenses (debit > 0) or income (credit > 0)
@@ -108,14 +108,39 @@ The app supports optional balance tracking with the following features:
   - Edit/delete buttons removed from card face for cleaner UI
 
 #### Transaction Management
-- Transactions are always displayed grouped by category (no toggle between detail and grouped views)
-- Categories within each month are sorted alphabetically
-- Tapping a category card opens a bottom sheet showing all transactions for that category in that month
-- Each transaction in the bottom sheet displays:
-  - Calendar icon with the day number
-  - Transaction label (or category name if no label exists)
-  - Amount (color-coded: red for expenses, green for income)
-  - Edit and delete action buttons
+
+##### View Modes
+Transactions can be displayed in three different view modes, selectable via FilterChips below the expense/income filter:
+
+1. **Monthly Grouped** (default) - Transactions grouped by month, then by category
+   - Shows month headers (e.g., "January 2026")
+   - Categories sorted alphabetically (case-insensitive) within each month
+   - Scroll badge displays current month when scrolling
+   - Tapping a category card opens a bottom sheet showing all transactions for that category in that month
+
+2. **Yearly Grouped** - Transactions grouped by year, then by category
+   - Shows year headers (e.g., "2026")
+   - Categories sorted alphabetically (case-insensitive) within each year
+   - Scroll badge displays current year when scrolling
+   - Tapping a category card opens a bottom sheet showing all transactions for that category in that year
+
+3. **Flat List** - Ungrouped chronological list of all transactions
+   - Displays most recent transactions first
+   - Each transaction shows: date, category, label, and amount
+   - No scroll badge displayed
+   - Tapping a transaction opens a bottom sheet with Edit and Delete actions
+
+**View Mode UI Elements:**
+- Three FilterChip buttons with icons: Calendar (Month), Calendar Range (Year), List (Flat)
+- Selected mode is highlighted visually
+- Switching modes automatically scrolls view to top and resets scroll badge
+- Mode preference persists during the session but resets on app restart
+
+**Transaction Display (Bottom Sheet):**
+- Calendar icon with the day number
+- Transaction label (or category name if no label exists)
+- Amount (color-coded: red for expenses, green for income)
+- Edit and delete action buttons
 
 ##### Adding Transactions
 - **Multi-Transaction Entry** (primary flow):
@@ -150,7 +175,7 @@ The app supports optional balance tracking with the following features:
 - `DeleteAccountDialog` (stateless) - Confirmation dialog for account deletion
 - `BalanceHeader` (stateless) - Displays current balance below AppBar when balance is set. Shows balance amount (color-coded). Hidden when no balance exists. Not clickable
 - `BalanceDialog` (stateful) - Dialog for setting/editing balance with amount input and date picker. Validates numeric input and supports comma/dot decimal separators
-- `TransactionListView` (stateful) - Displays grouped transactions by month and category with search and expense/income filtering. Accepts `onEdit`, `onDelete`, and `onAdd` callbacks for transaction management
+- `TransactionListView` (stateful) - Displays transactions with three view modes (monthly grouped, yearly grouped, flat list) selectable via FilterChips. Supports search and expense/income filtering. Includes scroll badge showing current month/year (hidden in flat view). Accepts `onEdit`, `onDelete`, and `onAdd` callbacks for transaction management. Uses `ViewMode` enum with values: `monthlyGrouped`, `yearlyGrouped`, `flat`. Automatically scrolls to top when switching modes
 - `TransactionListSheet` (stateful) - Bottom sheet displaying transactions for a category with sorting options (date/amount, ascending/descending)
 - `MultiTransactionForm` (stateful) - Primary form for adding new transactions. Full-screen interface supporting batch entry of multiple transactions with:
   - Individual entry cards with date picker, type toggle (expense/income), category dropdown, label, and amount fields
