@@ -840,6 +840,21 @@ class DatabaseService {
     return result.map((row) => row['category'] as String).toList();
   }
 
+  Future<List<String>> getLabelsForAccount(int accountId, {String? category}) async {
+    final db = await database;
+    final query = StringBuffer(
+      "SELECT DISTINCT label FROM transactions WHERE account_id = ? AND label IS NOT NULL AND label != ''",
+    );
+    final args = <dynamic>[accountId];
+    if (category != null) {
+      query.write(' AND category = ?');
+      args.add(category);
+    }
+    query.write(' ORDER BY label');
+    final result = await db.rawQuery(query.toString(), args);
+    return result.map((row) => row['label'] as String).toList();
+  }
+
   Future<void> importFromCsvForAccount(List<Transaction> transactions, int accountId) async {
     final db = await database;
     final batch = db.batch();

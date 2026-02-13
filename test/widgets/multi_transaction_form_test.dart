@@ -16,9 +16,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Add Transactions'), findsOneWidget);
-      // Should have one entry card with #1
-      expect(find.text('#1'), findsOneWidget);
-      expect(find.text('#2'), findsNothing);
+      // Should have one entry card with label and amount fields
+      expect(find.widgetWithText(TextFormField, 'Label'), findsOneWidget);
+      expect(find.widgetWithText(TextFormField, 'Amount'), findsOneWidget);
     });
 
     testWidgets('"Add Another" button adds new entry row', (tester) async {
@@ -31,8 +31,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Initially one entry
-      expect(find.text('#1'), findsOneWidget);
-      expect(find.text('#2'), findsNothing);
+      expect(find.widgetWithText(TextFormField, 'Label'), findsOneWidget);
 
       // Find and tap the Add Another button by key
       final addButton = find.byKey(const Key('add_another_button'));
@@ -43,8 +42,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Now should have two entries
-      expect(find.text('#1'), findsOneWidget);
-      expect(find.text('#2'), findsOneWidget);
+      expect(find.widgetWithText(TextFormField, 'Label'), findsNWidgets(2));
 
       // Reset surface size
       await tester.binding.setSurfaceSize(null);
@@ -63,8 +61,7 @@ void main() {
       await tester.tap(addButton);
       await tester.pumpAndSettle();
 
-      expect(find.text('#1'), findsOneWidget);
-      expect(find.text('#2'), findsOneWidget);
+      expect(find.widgetWithText(TextFormField, 'Label'), findsNWidgets(2));
 
       // Find remove buttons (X icons)
       final removeButtons = find.byIcon(Icons.close);
@@ -74,9 +71,8 @@ void main() {
       await tester.tap(removeButtons.first);
       await tester.pumpAndSettle();
 
-      // Should now have only one entry (renumbered to #1)
-      expect(find.text('#1'), findsOneWidget);
-      expect(find.text('#2'), findsNothing);
+      // Should now have only one entry
+      expect(find.widgetWithText(TextFormField, 'Label'), findsOneWidget);
 
       // The last entry should not have a remove button
       expect(find.byIcon(Icons.close), findsNothing);
@@ -94,9 +90,9 @@ void main() {
       // Date picker
       expect(find.byIcon(Icons.calendar_today), findsOneWidget);
 
-      // Expense/Income toggle
-      expect(find.text('Expense'), findsOneWidget);
-      expect(find.text('Income'), findsOneWidget);
+      // Expense/Income toggle (compact - and + icons)
+      expect(find.byIcon(Icons.remove), findsOneWidget);
+      expect(find.byIcon(Icons.add), findsAtLeast(1));
 
       // Category dropdown
       expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
@@ -476,17 +472,19 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // Initially expense should be selected
-      expect(find.text('Expense'), findsOneWidget);
-      expect(find.text('Income'), findsOneWidget);
+      // Initially both toggle icons should be visible (- for expense, + for income)
+      expect(find.byIcon(Icons.remove), findsOneWidget);
+      expect(find.byIcon(Icons.add), findsAtLeast(1)); // + icon in toggle (and possibly in bottom bar)
 
-      // Tap Income
-      await tester.tap(find.text('Income'));
+      // Tap the + icon (income toggle) — it's inside the entry card
+      final addIcons = find.byIcon(Icons.add);
+      // The first Icons.add is the income toggle, tap it
+      await tester.tap(addIcons.first);
       await tester.pumpAndSettle();
 
-      // Both should still be visible (toggle buttons)
-      expect(find.text('Expense'), findsOneWidget);
-      expect(find.text('Income'), findsOneWidget);
+      // Both toggle icons should still be visible
+      expect(find.byIcon(Icons.remove), findsOneWidget);
+      expect(find.byIcon(Icons.add), findsAtLeast(1));
     });
 
     testWidgets('Save All button shows transaction count', (tester) async {

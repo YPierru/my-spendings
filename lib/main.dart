@@ -433,6 +433,7 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
           categories: _availableCategories,
           initialCategory: category,
           accountId: _accountId,
+          onLoadLabels: (category) => _db.getLabelsForAccount(_accountId, category: category),
         ),
       ),
     );
@@ -454,6 +455,7 @@ class _SpendingDashboardState extends State<SpendingDashboard> {
           categories: _availableCategories,
           accountId: _accountId,
           initialCategory: initialCategory,
+          onLoadLabels: (category) => _db.getLabelsForAccount(_accountId, category: category),
         ),
       ),
     );

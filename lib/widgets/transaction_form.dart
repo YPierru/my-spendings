@@ -6,6 +6,7 @@ class TransactionForm extends StatefulWidget {
   final List<String> categories;
   final String? initialCategory;
   final int accountId;
+  final Future<List<String>> Function(String category)? onLoadLabels;
 
   const TransactionForm({
     super.key,
@@ -13,6 +14,7 @@ class TransactionForm extends StatefulWidget {
     required this.categories,
     this.initialCategory,
     required this.accountId,
+    this.onLoadLabels,
   });
 
   @override
@@ -28,8 +30,9 @@ class _TransactionFormState extends State<TransactionForm> {
   late bool _isExpense;
   bool _isNewCategory = false;
   final _categoryController = TextEditingController();
-  final _labelController = TextEditingController();
+  TextEditingController _labelController = TextEditingController();
   final _amountController = TextEditingController();
+  final Map<String, List<String>> _labelCache = {};
 
   bool get _isEditing => widget.transaction != null;
 
@@ -58,14 +61,25 @@ class _TransactionFormState extends State<TransactionForm> {
       _amount = 0.0;
       _isExpense = true;
     }
+    // Pre-load labels for the initial category
+    if (_category.isNotEmpty) {
+      _getLabelsForCategory(_category);
+    }
   }
 
   @override
   void dispose() {
     _categoryController.dispose();
-    _labelController.dispose();
     _amountController.dispose();
     super.dispose();
+  }
+
+  Future<List<String>> _getLabelsForCategory(String category) async {
+    if (widget.onLoadLabels == null) return [];
+    if (_labelCache.containsKey(category)) return _labelCache[category]!;
+    final labels = await widget.onLoadLabels!(category);
+    _labelCache[category] = labels;
+    return labels;
   }
 
   Future<void> _selectDate() async {
@@ -221,6 +235,7 @@ class _TransactionFormState extends State<TransactionForm> {
                     onChanged: (value) {
                       if (value != null) {
                         setState(() => _category = value);
+                        _getLabelsForCategory(value);
                       }
                     },
                     validator: (value) {
@@ -267,20 +282,38 @@ class _TransactionFormState extends State<TransactionForm> {
             ),
             const SizedBox(height: 16),
 
-            // Label
-            TextFormField(
-              controller: _labelController,
-              decoration: const InputDecoration(
-                labelText: 'Label',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a label';
-                }
-                return null;
+            // Label with autocomplete
+            Autocomplete<String>(
+              initialValue: TextEditingValue(text: _labelController.text),
+              optionsBuilder: (textEditingValue) {
+                if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
+                final category = _isNewCategory ? _categoryController.text : _category;
+                if (category.isEmpty) return const Iterable<String>.empty();
+                final labels = _labelCache[category] ?? const [];
+                final query = textEditingValue.text.toLowerCase();
+                return labels.where((l) => l.toLowerCase().contains(query));
               },
-              onSaved: (value) => _label = value?.trim() ?? '',
+              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                _labelController = controller;
+                return TextFormField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: const InputDecoration(
+                    labelText: 'Label',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a label';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) => _label = value?.trim() ?? '',
+                );
+              },
+              onSelected: (selection) {
+                _labelController.text = selection;
+              },
             ),
             const SizedBox(height: 16),
 
