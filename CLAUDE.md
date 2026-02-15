@@ -145,16 +145,15 @@ Transactions can be displayed in three different view modes, selectable via Filt
 ##### Adding Transactions
 - **Multi-Transaction Entry** (primary flow):
   - The floating action button (+) opens `MultiTransactionForm` for batch entry
-  - Enables adding multiple transactions efficiently in one session
-  - Each entry has: date picker, expense/income toggle, category dropdown, label field, and amount field
-  - **Shared Defaults Section**: Optionally use the same date and/or category for all entries
-    - "Use same date for all" - When enabled, hides individual date pickers and uses shared date
-    - "Use same category for all" - When enabled, hides individual category dropdowns and uses shared category
-  - **Add Another** button adds new entry rows dynamically
-  - **Remove (X)** button deletes individual entries (cannot remove the last remaining entry)
-  - **Save All (N)** button displays count and saves all transactions via batch insert (`insertTransactions` method)
+  - Uses a single entry form + staged transactions table pattern
+  - **Entry form**: date picker + category dropdown on same row, label with autocomplete, expense/income toggle + amount + "Add" button
+  - User fills the form and taps **"Add"** to stage a transaction; the form clears completely for the next entry
+  - **Staged table**: compact rows showing date, category, label, amount (color-coded), and delete (✕) button
+  - **Short tap** on a staged row loads it into the form for editing (button changes to "Update", row highlighted)
+  - "Use same date for all" — applies retroactively to all already-staged transactions when toggled on or when shared date changes
+  - **Save All (N)** button appears only when staged transactions exist; saves all via batch insert (`insertTransactions` method)
   - When adding from a category context (bottom sheet), that category is pre-selected for convenience
-  - Form validation ensures all labels and amounts are provided before submission
+  - Form validation ensures label and amount are provided before adding to staging
 
 ##### Editing Transactions
 - **Single Transaction Form** (editing only):
@@ -177,12 +176,12 @@ Transactions can be displayed in three different view modes, selectable via Filt
 - `BalanceDialog` (stateful) - Dialog for setting/editing balance with amount input and date picker. Validates numeric input and supports comma/dot decimal separators
 - `TransactionListView` (stateful) - Displays transactions with three view modes (monthly grouped, yearly grouped, flat list) selectable via FilterChips. Supports search and expense/income filtering. Includes scroll badge showing current month/year (hidden in flat view). Accepts `onEdit`, `onDelete`, and `onAdd` callbacks for transaction management. Uses `ViewMode` enum with values: `monthlyGrouped`, `yearlyGrouped`, `flat`. Automatically scrolls to top when switching modes
 - `TransactionListSheet` (stateful) - Bottom sheet displaying transactions for a category with sorting options (date/amount, ascending/descending)
-- `MultiTransactionForm` (stateful) - Primary form for adding new transactions. Full-screen interface supporting batch entry of multiple transactions with:
-  - Individual entry cards with date picker, type toggle (expense/income), category dropdown, label, and amount fields
-  - Shared defaults section for applying common date/category across all entries
-  - "Add Another" button to dynamically add more entry rows
-  - Remove (X) buttons on each entry (disabled when only one entry remains)
-  - "Save All (N)" button showing entry count and triggering batch insert
+- `MultiTransactionForm` (stateful) - Primary form for adding new transactions. Uses single entry form + staged transactions table pattern:
+  - Single entry form with date+category row, label autocomplete, type toggle + amount + "Add"/"Update" button
+  - Staged transactions table showing compact rows (date, category, label, amount, delete button)
+  - Short tap on staged row loads it into form for editing (button changes to "Update", row highlighted blue)
+  - "Use same date for all" applies retroactively to all staged transactions
+  - "Save All (N)" button only visible when staged transactions exist, triggers batch insert
   - Accepts `initialCategory` for pre-selecting category when adding from category context
   - Returns `List<Transaction>` when submitted successfully
 - `TransactionForm` (stateful) - Full-screen form for editing existing transactions. Supports category selection or creation. No longer used for adding new transactions (replaced by `MultiTransactionForm`)
